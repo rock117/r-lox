@@ -19,7 +19,10 @@ impl Literal {
 }
 impl Display for Literal {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_string())
+        match self {
+            Number(n) => write!(f, "{}", n.to_string()),
+            Str(str) => write!(f, "{}", str.to_string()),
+        }
     }
 }
 

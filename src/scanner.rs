@@ -2,6 +2,29 @@ use crate::lox::Lox;
 use crate::token::token_type::TokenType;
 use crate::token::token_type::TokenType::*;
 use crate::token::{Literal, Token};
+use map_macro::hash_map;
+use std::collections::HashMap;
+use once_cell::sync::Lazy;
+
+static KEY_WORDS: Lazy<HashMap<&'static str, TokenType>> = Lazy::new(||  hash_map! {
+    "and" => AND,
+    "class" => CLASS,
+    "else" => ELSE,
+    "false" => FALSE,
+    "for" => FOR,
+    "fun" => FUN,
+    "if" => IF,
+    "nil" => NIL,
+    "or" => OR,
+    "print" => PRINT,
+    "return" => RETURN,
+    "super" => SUPER,
+    "this" => THIS,
+    "true" => TRUE,
+    "var" => VAR,
+    "while" => WHILE,
+});
+
 pub(crate) struct Scanner {
     source: String,
     tokens: Vec<Token>,
@@ -9,6 +32,7 @@ pub(crate) struct Scanner {
     current: usize,
     line: usize,
 }
+
 impl Scanner {
     pub fn new(source: String) -> Self {
         Self {
@@ -90,6 +114,8 @@ impl Scanner {
             _ => {
                 if self.is_digit(Some(c)) {
                     self.number();
+                } else if self.is_alpha(c) {
+                    self.identifier();
                 } else {
                     Lox::error(self.line, "Unexpected character.")
                 }
@@ -97,6 +123,22 @@ impl Scanner {
         }
     }
 
+    fn identifier(&mut self) {
+        while self.is_alpha_numeric(self.peek()) {
+            self.advance();
+        }
+        let text = &self.source[self.start..self.current];
+        let type_ = KEY_WORDS.get(text).map(|v| *v).unwrap_or(IDENTIFIER);
+        self.add_token(type_);
+    }
+
+    fn is_alpha(&self, c: char) -> bool {
+        (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+    }
+
+    fn is_alpha_numeric(&self, c: Option<char>) -> bool {
+        c.map(|c| self.is_alpha(c)).unwrap_or(false) || self.is_digit(c)
+    }
     fn is_digit(&self, c: Option<char>) -> bool {
         c.map(|c| c >= '0' && c <= '9').unwrap_or(false)
     }

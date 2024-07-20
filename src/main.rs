@@ -11,10 +11,11 @@ mod token;
 
 fn main() -> anyhow::Result<()> {
     let args = std::env::args();
-    if args.len() > 1 {
+    println!("args len: {}, {:?}", args.len(), args);
+    if args.len() > 2 {
         println!("Usage: jlox [script]");
         std::process::exit(64);
-    } else if args.len() == 1 {
+    } else if args.len() == 2 {
         Lox::run_file(
             args.into_iter()
                 .next()
