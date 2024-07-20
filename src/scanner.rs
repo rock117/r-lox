@@ -1,7 +1,7 @@
 use crate::lox::Lox;
 use crate::token::token_type::TokenType;
 use crate::token::token_type::TokenType::*;
-use crate::token::Token;
+use crate::token::{Literal, Token};
 pub(crate) struct Scanner {
     source: String,
     tokens: Vec<Token>,
@@ -20,7 +20,7 @@ impl Scanner {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> Vec<Token> {
+    pub fn scan_tokens(mut self) -> Vec<Token> {
         while !self.is_at_end() {
             // We are at the beginning of the next lexeme.
             self.start = self.current;
@@ -28,9 +28,10 @@ impl Scanner {
         }
         self.tokens
             .push(Token::new(EOF, "".into(), None, self.line));
-        self.tokens.clone()
+        self.tokens
     }
 
+    /// scan character, if a token found, add to self.tokens
     fn scan_token(&mut self) {
         let Some(c) = self.advance() else {
             return;
@@ -50,19 +51,105 @@ impl Scanner {
             ';' => self.add_token(SEMICOLON),
             '*' => self.add_token(STAR),
 
-            '!' => self.add_token(if self.match_('=') { BANG_EQUAL } else { BANG }),
-            '=' => self.add_token(if self.match_('=') { EQUAL_EQUAL } else { EQUAL }),
-            '<' => self.add_token(if self.match_('=') { LESS_EQUAL } else { LESS }),
-            '>' => self.add_token(if self.match_('=') {
-                GREATER_EQUAL
-            } else {
-                GREATER
-            }),
+            '!' => {
+                let token_type = if self.match_('=') { BANG_EQUAL } else { BANG };
+                self.add_token(token_type);
+            }
+            '=' => {
+                let token_type = if self.match_('=') { EQUAL_EQUAL } else { EQUAL };
+                self.add_token(token_type);
+            }
+            '<' => {
+                let token_type = if self.match_('=') { LESS_EQUAL } else { LESS };
+                self.add_token(token_type);
+            }
+            '>' => {
+                let token_type = if self.match_('=') {
+                    GREATER_EQUAL
+                } else {
+                    GREATER
+                };
+                self.add_token(token_type);
+            }
 
-            _ => Lox::error(self.line, "Unexpected character."),
+            '/' => {
+                if self.match_('/') {
+                    // A comment goes until the end of the line.
+                    while self.peek() != Some('\n') && !self.is_at_end() {
+                        self.advance();
+                    }
+                } else {
+                    self.add_token(SLASH);
+                }
+            }
+            ' ' | '\r' | '\t' => {
+                // Ignore whitespace.
+            }
+            '\n' => self.line += 1,
+            '"' => self.string(),
+            _ => {
+                if self.is_digit(Some(c)) {
+                    self.number();
+                } else {
+                    Lox::error(self.line, "Unexpected character.")
+                }
+            }
         }
     }
 
+    fn is_digit(&self, c: Option<char>) -> bool {
+        c.map(|c| c >= '0' && c <= '9').unwrap_or(false)
+    }
+    fn number(&mut self) {
+        while self.is_digit(self.peek()) {
+            self.advance();
+        }
+
+        // Look for a fractional part.
+        if self.peek() == Some('.') && self.is_digit(self.peek_next()) {
+            // Consume the "."
+            self.advance();
+
+            while self.is_digit(self.peek()) {
+                self.advance();
+            }
+        }
+
+        self.add_token2(
+            NUMBER,
+            Some(Literal::number(
+                self.source[self.start..self.current]
+                    .parse::<f64>()
+                    .unwrap_or(f64::NAN),
+            )),
+        );
+    }
+    fn peek_next(&self) -> Option<char> {
+        if self.current + 1 >= self.source.len() {
+            Some('\0')
+        } else {
+            self.source.chars().nth(self.current + 1)
+        }
+    }
+    fn string(&mut self) {
+        while self.peek() != Some('"') && !self.is_at_end() {
+            if self.peek() == Some('\n') {
+                self.line += 1;
+            }
+            self.advance();
+        }
+
+        if self.is_at_end() {
+            Lox::error(self.line, "Unterminated string.");
+            return;
+        }
+
+        /// The closing ".
+        self.advance();
+        // Trim the surrounding quotes.
+        let value = &self.source[self.start + 1..self.current - 1];
+        self.add_token2(STRING, Some(Literal::string(value.into())));
+    }
     fn match_(&mut self, expected: char) -> bool {
         if self.is_at_end() {
             return false;
@@ -74,6 +161,14 @@ impl Scanner {
         true
     }
 
+    fn peek(&self) -> Option<char> {
+        if self.is_at_end() {
+            Some('\0')
+        } else {
+            self.source.chars().nth(self.current)
+        }
+    }
+
     fn advance(&mut self) -> Option<char> {
         self.current += 1;
         self.source.chars().nth(self.current - 1)
@@ -81,7 +176,7 @@ impl Scanner {
     fn add_token(&mut self, token_type: TokenType) {
         self.add_token2(token_type, None);
     }
-    fn add_token2(&mut self, token_type: TokenType, literal: Option<String>) {
+    fn add_token2(&mut self, token_type: TokenType, literal: Option<Literal>) {
         let text = &self.source[self.start..self.current];
         self.tokens
             .push(Token::new(token_type, text.into(), literal, self.line));
