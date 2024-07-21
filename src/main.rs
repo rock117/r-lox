@@ -5,6 +5,7 @@ use anyhow::anyhow;
 
 use crate::lox::Lox;
 
+mod expr;
 mod lox;
 mod scanner;
 mod token;

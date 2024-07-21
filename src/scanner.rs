@@ -3,26 +3,28 @@ use crate::token::token_type::TokenType;
 use crate::token::token_type::TokenType::*;
 use crate::token::{Literal, Token};
 use map_macro::hash_map;
-use std::collections::HashMap;
 use once_cell::sync::Lazy;
+use std::collections::HashMap;
 
-static KEY_WORDS: Lazy<HashMap<&'static str, TokenType>> = Lazy::new(||  hash_map! {
-    "and" => AND,
-    "class" => CLASS,
-    "else" => ELSE,
-    "false" => FALSE,
-    "for" => FOR,
-    "fun" => FUN,
-    "if" => IF,
-    "nil" => NIL,
-    "or" => OR,
-    "print" => PRINT,
-    "return" => RETURN,
-    "super" => SUPER,
-    "this" => THIS,
-    "true" => TRUE,
-    "var" => VAR,
-    "while" => WHILE,
+static KEY_WORDS: Lazy<HashMap<&'static str, TokenType>> = Lazy::new(|| {
+    hash_map! {
+        "and" => AND,
+        "class" => CLASS,
+        "else" => ELSE,
+        "false" => FALSE,
+        "for" => FOR,
+        "fun" => FUN,
+        "if" => IF,
+        "nil" => NIL,
+        "or" => OR,
+        "print" => PRINT,
+        "return" => RETURN,
+        "super" => SUPER,
+        "this" => THIS,
+        "true" => TRUE,
+        "var" => VAR,
+        "while" => WHILE,
+    }
 });
 
 pub(crate) struct Scanner {
