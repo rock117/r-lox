@@ -28,10 +28,10 @@ impl Display for Literal {
 
 #[derive(Debug, Clone)]
 pub struct Token {
-    r#type: TokenType,
+    pub(crate) r#type: TokenType,
     pub(crate) lexeme: String,
-    literal: Option<Literal>,
-    line: usize,
+    pub(crate) literal: Option<Literal>,
+    pub(crate) line: usize,
 }
 
 impl Token {

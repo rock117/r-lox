@@ -5,10 +5,13 @@ use anyhow::anyhow;
 
 use crate::lox::Lox;
 
+mod error;
 mod expr;
 mod lox;
+mod parser;
 mod scanner;
 mod token;
+mod interpreter;
 
 fn main() -> anyhow::Result<()> {
     let args = std::env::args();

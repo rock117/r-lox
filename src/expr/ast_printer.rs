@@ -8,12 +8,11 @@ use std::fmt::Display;
 pub(crate) struct AstPrinter;
 
 impl AstPrinter {
-
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         AstPrinter
     }
 
-    fn print(&self, expr: &impl Expr) -> String {
+    pub(crate) fn print(&self, expr: &impl Expr) -> String {
         return expr.accept(self);
     }
 
@@ -61,16 +60,22 @@ mod tests {
     use crate::expr::grouping::Grouping;
     use crate::expr::literal::Literal;
     use crate::expr::unary::Unary;
-    use crate::token::Token;
     use crate::token::token_type::TokenType;
+    use crate::token::Token;
 
     #[test]
     fn test_print_ast() {
         let expr = Binary::new(
-            Unary::new(Token::new(TokenType::MINUS, "-".into(), None, 1), Literal::new(Some(123))),
+            Unary::new(
+                Token::new(TokenType::MINUS, "-".into(), None, 1),
+                Literal::new(Some(123)),
+            ),
             Token::new(TokenType::STAR, "*".into(), None, 1),
-            Grouping::new(Literal::new(Some(45.67)))
+            Grouping::new(Literal::new(Some(45.67))),
         );
         assert_eq!("(* (- 123) (group 45.67))", AstPrinter::new().print(&expr));
     }
+
+    #[test]
+    fn test_print_ast_by_parser() {}
 }

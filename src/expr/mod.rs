@@ -1,16 +1,16 @@
-use std::fmt::Display;
 use crate::expr::binary::Binary;
 use crate::expr::grouping::Grouping;
 use crate::expr::literal::Literal;
 use crate::expr::unary::Unary;
+use std::fmt::Display;
 
-mod ast_printer;
-mod binary;
-mod grouping;
-mod literal;
-mod unary;
+pub mod ast_printer;
+pub mod binary;
+pub mod grouping;
+pub mod literal;
+pub mod unary;
 
-trait Expr {
+pub trait Expr {
     fn accept<T>(&self, visitor: &impl Visitor<T>) -> T;
 }
 
