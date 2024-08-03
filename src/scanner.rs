@@ -1,7 +1,8 @@
 use crate::lox::Lox;
+use crate::object::Object;
 use crate::token::token_type::TokenType;
 use crate::token::token_type::TokenType::*;
-use crate::token::{Literal, Token};
+use crate::token::Token;
 use map_macro::hash_map;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
@@ -161,7 +162,7 @@ impl Scanner {
 
         self.add_token2(
             NUMBER,
-            Some(Literal::number(
+            Some(Object::number(
                 self.source[self.start..self.current]
                     .parse::<f64>()
                     .unwrap_or(f64::NAN),
@@ -192,7 +193,7 @@ impl Scanner {
         self.advance();
         // Trim the surrounding quotes.
         let value = &self.source[self.start + 1..self.current - 1];
-        self.add_token2(STRING, Some(Literal::string(value.into())));
+        self.add_token2(STRING, Some(Object::string(value.into())));
     }
     fn match_(&mut self, expected: char) -> bool {
         if self.is_at_end() {
@@ -220,7 +221,7 @@ impl Scanner {
     fn add_token(&mut self, token_type: TokenType) {
         self.add_token2(token_type, None);
     }
-    fn add_token2(&mut self, token_type: TokenType, literal: Option<Literal>) {
+    fn add_token2(&mut self, token_type: TokenType, literal: Option<Object>) {
         let text = &self.source[self.start..self.current];
         self.tokens
             .push(Token::new(token_type, text.into(), literal, self.line));

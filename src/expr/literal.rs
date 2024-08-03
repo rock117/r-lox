@@ -1,17 +1,13 @@
-use crate::expr::{Expr, Visitor};
-use std::fmt::Display;
+use crate::object::Object;
+use std::fmt::Debug;
 
-pub(crate) struct Literal<T: Display> {
-    pub(crate) value: Option<T>,
+#[derive(Debug, Clone)]
+pub(crate) struct Literal {
+    pub(crate) value: Option<Object>,
 }
-impl<T: Display> Literal<T> {
-    pub fn new(value: Option<T>) -> Self {
+
+impl Literal {
+    pub fn new(value: Option<Object>) -> Self {
         Self { value }
-    }
-}
-
-impl<T: Display> Expr for Literal<T> {
-    fn accept<R>(&self, visitor: &impl Visitor<R>) -> R {
-        visitor.visit_literal_expr(self)
     }
 }

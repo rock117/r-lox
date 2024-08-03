@@ -1,23 +1,18 @@
-use crate::expr::{Expr, Visitor};
+use crate::expr::Expr;
 use crate::token::Token;
-
-pub(crate) struct Binary<L: Expr, R: Expr> {
-    pub(crate) left: L,
+#[derive(Clone)]
+pub(crate) struct Binary {
+    pub(crate) left: Expr,
     pub(crate) operator: Token,
-    pub(crate) right: R,
+    pub(crate) right: Expr,
 }
-impl<L: Expr, R: Expr> Binary<L, R> {
-    pub fn new(left: L, operator: Token, right: R) -> Self {
+
+impl Binary {
+    pub fn new(left: Expr, operator: Token, right: Expr) -> Self {
         Self {
             left,
             operator,
             right,
         }
-    }
-}
-
-impl<L: Expr, R: Expr> Expr for Binary<L, R> {
-    fn accept<T>(&self, visitor: &impl Visitor<T>) -> T {
-        visitor.visit_binary_expr(self)
     }
 }

@@ -1,18 +1,14 @@
-use crate::expr::{Expr, Visitor};
+use crate::expr::Expr;
 use crate::token::Token;
 
-pub(crate) struct Unary<E: Expr> {
+#[derive(Clone)]
+pub(crate) struct Unary {
     pub(crate) operator: Token,
-    pub(crate) right: E,
-}
-impl<E: Expr> Unary<E> {
-    pub fn new(operator: Token, right: E) -> Self {
-        Self { operator, right }
-    }
+    pub(crate) right: Expr,
 }
 
-impl<E: Expr> Expr for Unary<E> {
-    fn accept<T>(&self, visitor: &impl Visitor<T>) -> T {
-        visitor.visit_unary_expr(self)
+impl Unary {
+    pub fn new(operator: Token, right: Expr) -> Self {
+        Self { operator, right }
     }
 }

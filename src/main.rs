@@ -7,11 +7,13 @@ use crate::lox::Lox;
 
 mod error;
 mod expr;
+mod interpreter;
 mod lox;
+mod object;
 mod parser;
 mod scanner;
+mod stmt;
 mod token;
-mod interpreter;
 
 fn main() -> anyhow::Result<()> {
     let args = std::env::args();

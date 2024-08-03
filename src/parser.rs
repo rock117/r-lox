@@ -1,10 +1,7 @@
 use crate::error::ParseError;
-use crate::expr::binary::Binary;
-use crate::expr::grouping::Grouping;
-use crate::expr::literal::Literal;
-use crate::expr::unary::Unary;
 use crate::expr::Expr;
 use crate::lox::Lox;
+use crate::object::Object;
 use crate::token::token_type::TokenType;
 use crate::token::token_type::TokenType::*;
 use crate::token::Token;
@@ -22,87 +19,87 @@ impl Parser {
 
     /// When a syntax error does occur, this method returns null. That’s OK. The
     /// parser promises not to crash or hang on invalid syntax, but it doesn’t promise to return a usable syntax tree if an error is found.
-    pub(crate) fn parse<E: Expr>(&mut self) -> Option<E> {
-        match self.expression::<E>() {
+    pub(crate) fn parse(&mut self) -> Option<Expr> {
+        match self.expression() {
             Ok(e) => Some(e),
             _ => None,
         }
     }
     /// grammar expression → equality;
-    fn expression<E: Expr>(&mut self) -> Result<E, ParseError> {
-        self.equality::<E>()
+    fn expression(&mut self) -> Result<Expr, ParseError> {
+        self.equality()
     }
 
     /// grammar: equality → comparison ( ( "!=" | "==" ) comparison )* ;
-    fn equality<E: Expr>(&mut self) -> Result<E, ParseError> {
+    fn equality(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.comparison();
         while self.match_(&[BANG_EQUAL, EQUAL_EQUAL]) {
             let operator = self.previous().clone();
             let right = self.comparison();
-            expr = Binary::new(expr, operator, right);
+            expr = Ok(Expr::binary(expr?, operator, right?));
         }
-        return Ok(expr);
+        return expr;
     }
 
-    fn comparison<E: Expr>(&mut self) -> E {
+    fn comparison(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.term();
         while self.match_(&[GREATER, GREATER_EQUAL, LESS, LESS_EQUAL]) {
             let operator = self.previous().clone();
             let right = self.term();
-            expr = Binary::new(expr, operator, right);
+            expr = Ok(Expr::binary(expr?, operator, right?));
         }
         return expr;
     }
 
-    fn term<E: Expr>(&mut self) -> E {
+    fn term(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.factor();
         while self.match_(&[MINUS, PLUS]) {
             let operator = self.previous().clone();
             let right = self.factor();
-            expr = Binary::new(expr, operator, right);
+            expr = Ok(Expr::binary(expr?, operator, right?));
         }
         return expr;
     }
 
-    fn factor<E: Expr>(&mut self) -> E {
+    fn factor(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.unary();
         while self.match_(&[SLASH, STAR]) {
             let operator = self.previous().clone();
             let right = self.unary();
-            expr = Binary::new(expr, operator, right);
+            expr = Ok(Expr::binary(expr?, operator, right?));
         }
         return expr;
     }
 
-    fn unary<E: Expr>(&mut self) -> E {
+    fn unary(&mut self) -> Result<Expr, ParseError> {
         if self.match_(&[BANG, MINUS]) {
             let operator = self.previous().clone(); // TODO
-            let right = self.unary();
-            return Unary::new(operator, right);
+            let right = self.unary()?;
+            return Ok(Expr::unary(operator, right));
         }
         return self.primary();
     }
 
-    fn primary<E: Expr>(&mut self) -> Result<E, ParseError> {
+    fn primary(&mut self) -> Result<Expr, ParseError> {
         if self.match_(&[FALSE]) {
-            return Ok(Literal::new(Some(false)));
+            return Ok(Expr::literal(Some(Object::Boolean(false))));
         }
         if self.match_(&[TRUE]) {
-            return Ok(Literal::new(Some(true)));
+            return Ok(Expr::literal(Some(Object::Boolean(true))));
         }
         if self.match_(&[NIL]) {
-            return Ok(Literal::new(None));
+            return Ok(Expr::literal(None));
         }
         if self.match_(&[NUMBER, STRING]) {
-            return Ok(Literal::new(Some(self.previous().literal.clone())));
+            return Ok(Expr::literal(self.previous().literal.clone()));
         }
 
         if self.match_(&[LEFT_PAREN]) {
-            let expr = self.expression();
+            let expr = self.expression()?;
             self.consume(RIGHT_PAREN, "Expect ')' after expression.")?;
-            return Ok(Grouping::new(expr));
+            return Ok(Expr::grouping(expr));
         } else {
-            return self.error(self.peek(), "Expect expression.");
+            return Err(self.error(self.peek().clone(), "Expect expression."));
         }
     }
 
@@ -110,12 +107,12 @@ impl Parser {
         if self.check(token_type) {
             return Ok(self.advance().clone()); // TODO
         } else {
-            self.error(self.peek(), msg)
+            Err(self.error(self.peek().clone(), msg))
         }
     }
-    fn error(&self, token: &Token, msg: &str) -> Result<Token, ParseError> {
-        Lox::error_(token, msg);
-        Err(ParseError)
+    fn error(&self, token: Token, msg: &str) -> ParseError {
+        Lox::error_(&token, msg);
+        ParseError::new(token, msg.into())
     }
 
     /// discards tokens until found a statement boundary

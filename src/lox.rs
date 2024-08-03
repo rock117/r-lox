@@ -1,25 +1,26 @@
-use crate::expr::ast_printer::AstPrinter;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+use crate::error::ParseError;
+use crate::interpreter::Interpreter;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
 use crate::token::token_type::TokenType;
 use crate::token::Token;
-use std::sync::atomic::{AtomicBool, Ordering};
-use crate::interpreter::Interpreter;
 
-pub struct Lox {
-    interpreter: Interpreter,
-}
+pub struct Lox;
 
 static HAD_ERROR: AtomicBool = AtomicBool::new(false);
-static interpreter: Interpreter = Interpreter::new();
+static HAD_RUNTIME_ERROR: AtomicBool = AtomicBool::new(false);
 
 impl Lox {
-
     pub(crate) fn run_file(path: &str) -> anyhow::Result<()> {
         let source_code = std::fs::read_to_string(path)?;
         Lox::run(source_code);
         if HAD_ERROR.load(Ordering::Relaxed) {
             std::process::exit(65);
+        }
+        if HAD_RUNTIME_ERROR.load(Ordering::Relaxed) {
+            std::process::exit(70)
         }
         Ok(())
     }
@@ -44,12 +45,12 @@ impl Lox {
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let expression = parser.parse();
-        // Stop if there was a syntax error.
-        if HAD_ERROR.load(Ordering::SeqCst) {
+
+        if HAD_ERROR.load(Ordering::Relaxed) {
             return;
         }
         if let Some(exp) = expression {
-            println!("{}", AstPrinter::new().print(exp))
+            Interpreter::new().interpret(&exp);
         }
     }
 
@@ -68,5 +69,11 @@ impl Lox {
         } else {
             Lox::report(token.line, &format!(" at '{}'", token.lexeme), message);
         }
+    }
+
+    pub(crate) fn runtime_error(error: ParseError) {
+        //eprintln!(error.getMessage() + "\n[line " + error.token.line + "]"); TODO
+        eprintln!("{}\n[line {} ]", error.message, error.token.line);
+        HAD_RUNTIME_ERROR.store(true, Ordering::SeqCst);
     }
 }
