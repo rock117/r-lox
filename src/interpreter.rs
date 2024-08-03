@@ -123,20 +123,64 @@ impl Visitor for Interpreter {
             (TokenType::GREATER, Some(Object::Number(left)), Some(Object::Number(right))) => {
                 Ok(Some(Object::Boolean(left > right)))
             }
+            (TokenType::GREATER, _, _) => Err(ParseError::new(
+                expr.operator,
+                "Operands must be numbers.".into(),
+            )),
+
             (TokenType::GREATER_EQUAL, Some(Object::Number(left)), Some(Object::Number(right))) => {
                 Ok(Some(Object::Boolean(left >= right)))
             }
+            (TokenType::GREATER_EQUAL, _, _) => Err(ParseError::new(
+                expr.operator,
+                "Operands must be numbers.".into(),
+            )),
 
             (TokenType::LESS, Some(Object::Number(left)), Some(Object::Number(right))) => {
                 Ok(Some(Object::Boolean(left < right)))
             }
+            (TokenType::LESS, _, _) => Err(ParseError::new(
+                expr.operator,
+                "Operands must be numbers.".into(),
+            )),
+
             (TokenType::LESS_EQUAL, Some(Object::Number(left)), Some(Object::Number(right))) => {
                 Ok(Some(Object::Boolean(left <= right)))
             }
+            (TokenType::LESS_EQUAL, _, _) => Err(ParseError::new(
+                expr.operator,
+                "Operands must be numbers.".into(),
+            )),
 
             (TokenType::BANG_EQUAL, a, b) => Ok(Some(Object::Boolean(!self.is_equal(&a, &b)))),
             (TokenType::EQUAL_EQUAL, a, b) => Ok(Some(Object::Boolean(self.is_equal(&a, &b)))),
             _ => Err(ParseError::new(expr.operator, "Unknown error.".into())), // Unreachable.
         }
+    }
+}
+#[cfg(test)]
+mod tests {
+    use crate::interpreter::Interpreter;
+    use crate::parser::Parser;
+    use crate::scanner::Scanner;
+
+    #[test]
+    fn test_evaluate_success(){
+        let tokens = Scanner::new("1 + 2".into()).scan_tokens();
+        let mut parser = Parser::new(tokens);
+        let exp = parser.parse().unwrap();
+        let interceptor = Interpreter::new();
+        let value = interceptor.evaluate(&exp).unwrap();
+        assert_eq!("3", interceptor.stringify(value))
+    }
+
+    #[test]
+    fn test_evaluate_failed(){
+        let tokens = Scanner::new("1 + \"a\"".into()).scan_tokens();
+        let mut parser = Parser::new(tokens);
+        let exp = parser.parse().unwrap();
+        let interceptor = Interpreter::new();
+        let value = interceptor.evaluate(&exp);
+        assert_eq!(true, value.is_err())
     }
 }
