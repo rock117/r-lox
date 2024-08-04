@@ -9,12 +9,15 @@ pub mod binary;
 pub mod grouping;
 pub mod literal;
 pub mod unary;
+mod variable;
+
 #[derive(Clone)]
 pub enum Expr {
     Binary(Box<binary::Binary>),
     Grouping(Box<grouping::Grouping>),
     Literal(Box<literal::Literal>),
     Unary(Box<unary::Unary>),
+    Variable(variable::Variable),
 }
 
 impl Expr {

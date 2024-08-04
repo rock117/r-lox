@@ -1,5 +1,6 @@
 pub(crate) mod expression;
 pub(crate) mod print;
+mod var;
 
 use crate::error::ParseError;
 use crate::expr::Expr;
@@ -10,6 +11,7 @@ use crate::stmt;
 pub(crate) enum Stmt {
     Expression(expression::Expression),
     Print(print::Print),
+    Var(var::Var),
 }
 
 impl Stmt {
