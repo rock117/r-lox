@@ -2,6 +2,7 @@ use crate::error::ParseError;
 use crate::expr::Expr;
 use crate::lox::Lox;
 use crate::object::Object;
+use crate::stmt::Stmt;
 use crate::token::token_type::TokenType;
 use crate::token::token_type::TokenType::*;
 use crate::token::Token;
@@ -17,17 +18,35 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    /// When a syntax error does occur, this method returns null. That’s OK. The
-    /// parser promises not to crash or hang on invalid syntax, but it doesn’t promise to return a usable syntax tree if an error is found.
-    pub(crate) fn parse(&mut self) -> Option<Expr> {
-        match self.expression() {
-            Ok(e) => Some(e),
-            _ => None,
+    pub(crate) fn parse(&mut self) -> Result<Vec<Stmt>, ParseError> {
+        let mut statements = vec![];
+        while !self.is_at_end() {
+            statements.push(self.statement()?);
         }
+        return Ok(statements);
     }
     /// grammar expression → equality;
     fn expression(&mut self) -> Result<Expr, ParseError> {
         self.equality()
+    }
+
+    fn statement(&mut self) -> Result<Stmt, ParseError> {
+        if self.match_(&[PRINT]) {
+            self.print_statement()
+        } else {
+            self.expression_statement()
+        }
+    }
+
+    fn print_statement(&mut self) -> Result<Stmt, ParseError> {
+        let value = self.expression()?;
+        self.consume(SEMICOLON, "Expect ';' after value.")?;
+        Ok(Stmt::print(value))
+    }
+    fn expression_statement(&mut self) -> Result<Stmt, ParseError> {
+        let expr = self.expression()?;
+        self.consume(SEMICOLON, "Expect ';' after expression.")?;
+        Ok(Stmt::expression(expr))
     }
 
     /// grammar: equality → comparison ( ( "!=" | "==" ) comparison )* ;

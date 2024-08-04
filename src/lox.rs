@@ -44,13 +44,13 @@ impl Lox {
         let mut scanner = Scanner::new(source);
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
-        let expression = parser.parse();
+        let stmts = parser.parse();
 
         if HAD_ERROR.load(Ordering::Relaxed) {
             return;
         }
-        if let Some(exp) = expression {
-            Interpreter::new().interpret(&exp);
+        if let Ok(stmts) = stmts {
+            Interpreter::new().interpret(&stmts);
         }
     }
 

@@ -1,12 +1,14 @@
-use crate::object::Object::{Boolean, Number, Str};
 use std::cmp::Ordering;
-use std::fmt::Display;
+use std::fmt::{Debug, Display, Formatter};
 
-#[derive(Debug, Clone, PartialEq)]
+use crate::object::Object::{Boolean, Number, Str};
+
+#[derive(Clone, PartialEq)]
 pub(crate) enum Object {
     Str(String),
     Number(f64),
     Boolean(bool),
+    Void,
 }
 
 impl Object {
@@ -30,12 +32,22 @@ impl Object {
     }
 }
 
+fn to_string(object: &Object) -> String {
+    match object {
+        Str(v) => format!("{}", v),
+        Number(v) => format!("{}", v),
+        Boolean(v) => format!("{}", v),
+        Object::Void => "".into(),
+    }
+}
+impl Debug for Object {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", to_string(self))
+    }
+}
+
 impl Display for Object {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Object::Str(v) => write!(f, "{}", v),
-            Object::Number(v) => write!(f, "{}", v),
-            Object::Boolean(v) => write!(f, "{}", v),
-        }
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", to_string(self))
     }
 }
