@@ -1,3 +1,5 @@
+use once_cell::sync::Lazy;
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::error::ParseError;
@@ -11,6 +13,8 @@ pub struct Lox;
 
 static HAD_ERROR: AtomicBool = AtomicBool::new(false);
 static HAD_RUNTIME_ERROR: AtomicBool = AtomicBool::new(false);
+
+static interpreter: Lazy<Interpreter> = Lazy::new(|| Interpreter::new());
 
 impl Lox {
     pub(crate) fn run_file(path: &str) -> anyhow::Result<()> {
@@ -50,7 +54,7 @@ impl Lox {
             return;
         }
         if let Ok(stmts) = stmts {
-            Interpreter::new().interpret(&stmts);
+            interpreter.interpret(&stmts);
         }
     }
 

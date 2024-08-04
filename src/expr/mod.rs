@@ -1,5 +1,5 @@
 use crate::error::ParseError;
-use crate::expr::Expr::{Binary, Grouping, Literal, Unary};
+use crate::expr::Expr::{Binary, Grouping, Literal, Unary, Variable};
 use crate::object::Object;
 use crate::token::Token;
 use std::fmt::{Debug, Display};
@@ -9,7 +9,7 @@ pub mod binary;
 pub mod grouping;
 pub mod literal;
 pub mod unary;
-mod variable;
+pub(crate) mod variable;
 
 #[derive(Clone)]
 pub enum Expr {
@@ -32,6 +32,9 @@ impl Expr {
     }
     pub fn unary(operator: Token, right: Expr) -> Self {
         Unary(Box::new(unary::Unary::new(operator, right)))
+    }
+    pub fn variable(name: Token) -> Self {
+        Variable(variable::Variable { name })
     }
     pub fn accept<V: Visitor>(&self, visitor: &V) -> Result<Option<Object>, ParseError> {
         match self {
@@ -64,4 +67,6 @@ pub(crate) trait Visitor {
     fn visit_unary_expr(&self, expr: unary::Unary) -> Result<Option<Object>, ParseError>;
 
     fn visit_binary_expr(&self, expr: binary::Binary) -> Result<Option<Object>, ParseError>;
+
+    fn visit_variable_expr(&self, expr: variable::Variable) -> Result<Option<Object>, ParseError>;
 }

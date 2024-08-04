@@ -5,6 +5,7 @@ use anyhow::anyhow;
 
 use crate::lox::Lox;
 
+mod environment;
 mod error;
 mod expr;
 mod interpreter;

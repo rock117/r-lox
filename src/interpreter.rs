@@ -1,11 +1,12 @@
 use std::fmt::Display;
 
+use crate::environment::Environment;
 use crate::error::ParseError;
 use crate::expr::binary::Binary;
 use crate::expr::grouping::Grouping;
 use crate::expr::literal::Literal;
 use crate::expr::unary::Unary;
-use crate::expr::Expr;
+use crate::expr::{variable, Expr};
 use crate::lox::Lox;
 use crate::object::Object;
 use crate::stmt::print::Print;
@@ -13,11 +14,15 @@ use crate::stmt::{expression, Stmt};
 use crate::token::token_type::TokenType;
 use crate::{expr, stmt};
 
-pub(crate) struct Interpreter;
+pub(crate) struct Interpreter {
+    environment: Environment,
+}
 
 impl Interpreter {
     pub fn new() -> Self {
-        Interpreter
+        Self {
+            environment: Environment::new(),
+        }
     }
     pub fn interpret(&self, statements: &[Stmt]) {
         for stmt in statements {
@@ -171,6 +176,10 @@ impl expr::Visitor for Interpreter {
             _ => Err(ParseError::new(expr.operator, "Unknown error.".into())), // Unreachable.
         }
     }
+
+    fn visit_variable_expr(&self, expr: variable::Variable) -> Result<Option<Object>, ParseError> {
+        self.environment.get(&expr.name).map(|v| v.clone())
+    }
 }
 
 impl stmt::Visitor for Interpreter {
@@ -183,7 +192,18 @@ impl stmt::Visitor for Interpreter {
         println!("{:?}", self.stringify(value));
         Ok(())
     }
+
+    fn visit_var_stmt(&mut self, stmt: stmt::var::Var) -> Result<(), ParseError> {
+        let value = if let Some(initializer) = stmt.initializer {
+            self.evaluate(&initializer)?
+        } else {
+            None
+        };
+        self.environment.define(stmt.name.lexeme, value);
+        Ok(())
+    }
 }
+
 #[cfg(test)]
 mod tests {
     use crate::interpreter::Interpreter;

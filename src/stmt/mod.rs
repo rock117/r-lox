@@ -1,12 +1,13 @@
 pub(crate) mod expression;
 pub(crate) mod print;
-mod var;
+pub(crate) mod var;
 
 use crate::error::ParseError;
 use crate::expr::Expr;
 use crate::expr::Expr::{Binary, Grouping, Literal, Unary};
 use crate::object::Object;
 use crate::stmt;
+use crate::token::Token;
 
 pub(crate) enum Stmt {
     Expression(expression::Expression),
@@ -32,10 +33,16 @@ impl Stmt {
     pub fn expression(expression: Expr) -> Self {
         Stmt::Expression(expression::Expression { expression })
     }
+
+    pub fn var(token: Token, initializer: Option<Expr>) -> Self {
+        Stmt::Var(var::Var { name, initializer })
+    }
 }
 
 pub(crate) trait Visitor {
     fn visit_expression_stmt(&self, stmt: expression::Expression) -> Result<(), ParseError>;
 
     fn visit_print_stmt(&self, stmt: print::Print) -> Result<(), ParseError>;
+
+    fn visit_var_stmt(&self, stmt: var::Var) -> Result<(), ParseError>;
 }

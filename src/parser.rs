@@ -21,13 +21,28 @@ impl Parser {
     pub(crate) fn parse(&mut self) -> Result<Vec<Stmt>, ParseError> {
         let mut statements = vec![];
         while !self.is_at_end() {
-            statements.push(self.statement()?);
+            statements.push(self.declaration().unwrap()); // TODO
         }
         return Ok(statements);
     }
     /// grammar expression → equality;
     fn expression(&mut self) -> Result<Expr, ParseError> {
         self.equality()
+    }
+
+    fn declaration(&mut self) -> Option<Stmt> {
+        let res = if self.match_(&[VAR]) {
+            self.var_declaration()
+        } else {
+            self.statement()
+        };
+        match res {
+            Ok(stmt) => Some(stmt),
+            Err(_) => {
+                self.synchronize();
+                None
+            }
+        }
     }
 
     fn statement(&mut self) -> Result<Stmt, ParseError> {
@@ -42,6 +57,16 @@ impl Parser {
         let value = self.expression()?;
         self.consume(SEMICOLON, "Expect ';' after value.")?;
         Ok(Stmt::print(value))
+    }
+    fn var_declaration(&mut self) -> Result<Stmt, ParseError> {
+        let name = self.consume(IDENTIFIER, "Expect variable name.")?;
+        let initializer: Option<Expr> = if self.match_(&[EQUAL]) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+        self.consume(SEMICOLON, "Expect ';' after variable declaration.")?;
+        Ok(Stmt::var(name, initializer))
     }
     fn expression_statement(&mut self) -> Result<Stmt, ParseError> {
         let expr = self.expression()?;
@@ -112,7 +137,9 @@ impl Parser {
         if self.match_(&[NUMBER, STRING]) {
             return Ok(Expr::literal(self.previous().literal.clone()));
         }
-
+        if self.match_(&[IDENTIFIER]) {
+            return Ok(Expr::variable(self.previous().clone()));
+        }
         if self.match_(&[LEFT_PAREN]) {
             let expr = self.expression()?;
             self.consume(RIGHT_PAREN, "Expect ')' after expression.")?;

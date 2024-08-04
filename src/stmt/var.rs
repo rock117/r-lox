@@ -3,6 +3,6 @@ use crate::token::Token;
 
 #[derive(Clone)]
 pub(crate) struct Var {
-    name: Token,
-    initializer: Option<Expr>,
+    pub name: Token,
+    pub initializer: Option<Expr>,
 }
