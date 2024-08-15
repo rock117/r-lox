@@ -24,6 +24,7 @@ impl Stmt {
             Stmt::Print(v) => visitor
                 .visit_print_stmt(v.clone())
                 .map(|_| Some(Object::Void)),
+            Stmt::Var(_) => {}
         }
     }
 
@@ -40,9 +41,13 @@ impl Stmt {
 }
 
 pub(crate) trait Visitor {
+
+    /// evalue expression, ignore result
     fn visit_expression_stmt(&self, stmt: expression::Expression) -> Result<(), ParseError>;
 
+    /// print statement
     fn visit_print_stmt(&self, stmt: print::Print) -> Result<(), ParseError>;
 
+    /// define var
     fn visit_var_stmt(&self, stmt: var::Var) -> Result<(), ParseError>;
 }

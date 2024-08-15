@@ -1,5 +1,5 @@
 use crate::error::ParseError;
-use crate::expr::Expr::{Binary, Grouping, Literal, Unary, Variable};
+use crate::expr::Expr::{Assign, Binary, Grouping, Literal, Unary, Variable};
 use crate::object::Object;
 use crate::token::Token;
 use std::fmt::{Debug, Display};
@@ -10,9 +10,11 @@ pub mod grouping;
 pub mod literal;
 pub mod unary;
 pub(crate) mod variable;
+mod assign;
 
 #[derive(Clone)]
 pub enum Expr {
+    Assign(Box<assign::Assign>),
     Binary(Box<binary::Binary>),
     Grouping(Box<grouping::Grouping>),
     Literal(Box<literal::Literal>),
@@ -21,6 +23,9 @@ pub enum Expr {
 }
 
 impl Expr {
+    pub fn assign(name: Token, expr: Expr) -> Self {
+       Assign(Box::new(assign::Assign {name, value}))
+    }
     pub fn binary(left: Expr, operator: Token, right: Expr) -> Self {
         Binary(Box::new(binary::Binary::new(left, operator, right)))
     }

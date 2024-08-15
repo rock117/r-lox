@@ -27,7 +27,7 @@ impl Parser {
     }
     /// grammar expression → equality;
     fn expression(&mut self) -> Result<Expr, ParseError> {
-        self.equality()
+        self.assignment()
     }
 
     fn declaration(&mut self) -> Option<Stmt> {
@@ -72,6 +72,21 @@ impl Parser {
         let expr = self.expression()?;
         self.consume(SEMICOLON, "Expect ';' after expression.")?;
         Ok(Stmt::expression(expr))
+    }
+
+    fn assignment(&mut self) -> Result<Expr, ParseError>  {
+        let expr = self.equality()?;
+        if self.match_(&[EQUAL]) {
+            let equals = self.previous();
+            let value = self.assignment()?;
+            if let Expr::Variable(expr) = expr {
+                let name = expr.name;
+                return Ok(Expr::assign(name, value))
+            } else {
+                self.error(equals.clone(), "Invalid assignment target.");
+            }
+        }
+        Ok(expr)
     }
 
     /// grammar: equality → comparison ( ( "!=" | "==" ) comparison )* ;
