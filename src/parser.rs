@@ -25,11 +25,12 @@ impl Parser {
         }
         return Ok(statements);
     }
-    /// grammar expression → equality;
+    /// grammar expression → assignment;
     fn expression(&mut self) -> Result<Expr, ParseError> {
         self.assignment()
     }
 
+    /// declaration → varDecl | statement
     fn declaration(&mut self) -> Option<Stmt> {
         let res = if self.match_(&[VAR]) {
             self.var_declaration()
@@ -45,6 +46,7 @@ impl Parser {
         }
     }
 
+    /// statement → exprStmt | printStmt ;
     fn statement(&mut self) -> Result<Stmt, ParseError> {
         if self.match_(&[PRINT]) {
             self.print_statement()
@@ -53,13 +55,16 @@ impl Parser {
         }
     }
 
+    /// printStmt → "print" expression ";" ;
     fn print_statement(&mut self) -> Result<Stmt, ParseError> {
         let value = self.expression()?;
         self.consume(SEMICOLON, "Expect ';' after value.")?;
         Ok(Stmt::print(value))
     }
+
+    /// varDecl → "var" IDENTIFIER ( "=" expression )? ";"
     fn var_declaration(&mut self) -> Result<Stmt, ParseError> {
-        let name = self.consume(IDENTIFIER, "Expect variable name.")?;
+        let name = self.consume(IDENTIFIER, "Expect variable name.")?; // var had been match by its caller
         let initializer: Option<Expr> = if self.match_(&[EQUAL]) {
             Some(self.expression()?)
         } else {
@@ -68,12 +73,16 @@ impl Parser {
         self.consume(SEMICOLON, "Expect ';' after variable declaration.")?;
         Ok(Stmt::var(name, initializer))
     }
+
+    /// exprStmt → expression ";"
     fn expression_statement(&mut self) -> Result<Stmt, ParseError> {
         let expr = self.expression()?;
         self.consume(SEMICOLON, "Expect ';' after expression.")?;
         Ok(Stmt::expression(expr))
     }
 
+    /// assignment → IDENTIFIER "=" assignment
+    /// | equality
     fn assignment(&mut self) -> Result<Expr, ParseError>  {
         let expr = self.equality()?;
         if self.match_(&[EQUAL]) {
@@ -89,7 +98,7 @@ impl Parser {
         Ok(expr)
     }
 
-    /// grammar: equality → comparison ( ( "!=" | "==" ) comparison )* ;
+    /// equality → comparison ( ( "!=" | "==" ) comparison )* ;
     fn equality(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.comparison();
         while self.match_(&[BANG_EQUAL, EQUAL_EQUAL]) {
@@ -139,6 +148,12 @@ impl Parser {
         return self.primary();
     }
 
+     /// To access a variable, we define a new kind of primary expressio
+     ///
+    /// primary → "true" | "false" | "nil"
+    /// | NUMBER | STRING
+    /// | "(" expression ")"
+    /// | IDENTIFIER ;
     fn primary(&mut self) -> Result<Expr, ParseError> {
         if self.match_(&[FALSE]) {
             return Ok(Expr::literal(Some(Object::Boolean(false))));
