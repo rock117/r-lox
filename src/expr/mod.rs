@@ -73,5 +73,9 @@ pub(crate) trait Visitor {
 
     fn visit_binary_expr(&self, expr: binary::Binary) -> Result<Option<Object>, ParseError>;
 
+    /// read expr value
     fn visit_variable_expr(&self, expr: variable::Variable) -> Result<Option<Object>, ParseError>;
+
+    /// evalue right value and assign to left var name
+    fn visit_assign_expr(&mut self, expr: assign::Assign) -> Result<Option<Object>, ParseError>;
 }

@@ -27,4 +27,15 @@ impl Environment {
     pub fn define(&mut self, name: String, value: Option<Object>) {
         self.values.insert(name, value);
     }
+
+    pub fn assign(&mut self, name: &Token, value: Option<Object>) -> Result<(), ParseError>{
+        if (self.values.containsKey(&name.lexeme)) {
+            self.values.insert(&name.lexeme, value);
+        } else {
+            Err(ParseError::new(
+                name.clone(),
+                format!("Undefined variable '{}'.", name.lexeme),
+            ))
+        }
+    }
 }

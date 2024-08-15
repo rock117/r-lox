@@ -13,6 +13,7 @@ use crate::stmt::print::Print;
 use crate::stmt::{expression, Stmt};
 use crate::token::token_type::TokenType;
 use crate::{expr, stmt};
+use crate::expr::Expr::Assign;
 
 pub(crate) struct Interpreter {
     environment: Environment,
@@ -179,6 +180,12 @@ impl expr::Visitor for Interpreter {
 
     fn visit_variable_expr(&self, expr: variable::Variable) -> Result<Option<Object>, ParseError> {
         self.environment.get(&expr.name).map(|v| v.clone())
+    }
+
+    fn visit_assign_expr(&mut self, expr: Assign) -> Result<Option<Object>, ParseError> {
+        let value = self.evaluate(expr.value)?;
+        self.environment.assign(expr.name, value.clone())?;
+        Ok(value)
     }
 }
 
