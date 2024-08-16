@@ -6,14 +6,15 @@ use crate::expr::binary::Binary;
 use crate::expr::grouping::Grouping;
 use crate::expr::literal::Literal;
 use crate::expr::unary::Unary;
-use crate::expr::{variable, Expr, assign};
+use crate::expr::Expr::Assign;
+use crate::expr::{assign, variable, Expr};
 use crate::lox::Lox;
 use crate::object::Object;
 use crate::stmt::print::Print;
-use crate::stmt::{expression, Stmt};
+use crate::stmt::var::Var;
+use crate::stmt::{block, expression, Stmt};
 use crate::token::token_type::TokenType;
 use crate::{expr, stmt};
-use crate::expr::Expr::Assign;
 
 pub(crate) struct Interpreter {
     environment: Environment,
@@ -76,6 +77,23 @@ impl Interpreter {
             (Some(a), Some(b)) => a.is_equal(b),
             _ => false,
         }
+    }
+
+    fn execute_block(
+        &mut self,
+        statements: Vec<Stmt>,
+        environment: Environment,
+    ) -> Result<(), ParseError> {
+        let previous = self.environment.clone();
+        self.environment = environment;
+        for stmt in statements {
+            if let Err(e) = self.execute(&stmt) {
+                self.environment = previous;
+                return Err(e);
+            }
+        }
+        self.environment = previous;
+        Ok(())
     }
 }
 
@@ -208,6 +226,13 @@ impl stmt::Visitor for Interpreter {
         };
         self.environment.define(stmt.name.lexeme, value);
         Ok(())
+    }
+
+    fn visit_block_stmt(&mut self, stmt: block::Block) -> Result<(), ParseError> {
+        self.execute_block(
+            stmt.statements,
+            Environment::new_from_enclosing(self.environment.clone()),
+        )
     }
 }
 

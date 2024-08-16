@@ -4,13 +4,13 @@ use crate::object::Object;
 use crate::token::Token;
 use std::fmt::{Debug, Display};
 
+pub mod assign;
 pub mod ast_printer;
 pub mod binary;
 pub mod grouping;
 pub mod literal;
 pub mod unary;
 pub(crate) mod variable;
-pub mod assign;
 
 #[derive(Clone)]
 pub enum Expr {
@@ -24,7 +24,7 @@ pub enum Expr {
 
 impl Expr {
     pub fn assign(name: Token, expr: Expr) -> Self {
-       Assign(Box::new(assign::Assign {name, value: expr}))
+        Assign(Box::new(assign::Assign { name, value: expr }))
     }
     pub fn binary(left: Expr, operator: Token, right: Expr) -> Self {
         Binary(Box::new(binary::Binary::new(left, operator, right)))
@@ -48,7 +48,7 @@ impl Expr {
             Literal(v) => visitor.visit_literal_expr((**v).clone()),
             Unary(v) => visitor.visit_unary_expr((**v).clone()),
             Assign(v) => visitor.visit_assign_expr(*v.clone()),
-            Variable(v) => visitor.visit_variable_expr(v.clone())
+            Variable(v) => visitor.visit_variable_expr(v.clone()),
         }
     }
 }
@@ -69,7 +69,10 @@ pub(crate) trait Visitor {
 
     fn visit_literal_expr(&self, expr: literal::Literal) -> Result<Option<Object>, ParseError>;
 
-    fn visit_grouping_expr(&mut self, expr: grouping::Grouping) -> Result<Option<Object>, ParseError>;
+    fn visit_grouping_expr(
+        &mut self,
+        expr: grouping::Grouping,
+    ) -> Result<Option<Object>, ParseError>;
 
     fn visit_unary_expr(&mut self, expr: unary::Unary) -> Result<Option<Object>, ParseError>;
 

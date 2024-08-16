@@ -46,10 +46,12 @@ impl Parser {
         }
     }
 
-    /// statement → exprStmt | printStmt ;
+    /// statement → exprStmt | printStmt | block ;
     fn statement(&mut self) -> Result<Stmt, ParseError> {
         if self.match_(&[PRINT]) {
             self.print_statement()
+        } else if self.match_(&[PRINT]) {
+            Ok(Stmt::block(self.block()?))
         } else {
             self.expression_statement()
         }
@@ -81,16 +83,25 @@ impl Parser {
         Ok(Stmt::expression(expr))
     }
 
+    fn block(&mut self) -> Result<Vec<Stmt>, ParseError> {
+        let mut statements = vec![];
+        while !self.check(RIGHT_BRACE) && !self.is_at_end() {
+            statements.push(self.declaration().unwrap()); // TODO
+        }
+        self.consume(RIGHT_BRACE, "Expect '}' after block.")?;
+        Ok(statements)
+    }
+
     /// assignment → IDENTIFIER "=" assignment
     /// | equality
-    fn assignment(&mut self) -> Result<Expr, ParseError>  {
+    fn assignment(&mut self) -> Result<Expr, ParseError> {
         let expr = self.equality()?;
         if self.match_(&[EQUAL]) {
             let equals = self.previous().clone();
             let value = self.assignment()?;
             if let Expr::Variable(expr) = expr {
                 let name = expr.name;
-                return Ok(Expr::assign(name, value))
+                return Ok(Expr::assign(name, value));
             } else {
                 self.error(equals, "Invalid assignment target."); // TODO thorw?
             }
@@ -148,8 +159,8 @@ impl Parser {
         return self.primary();
     }
 
-     /// To access a variable, we define a new kind of primary expressio
-     ///
+    /// To access a variable, we define a new kind of primary expressio
+    ///
     /// primary → "true" | "false" | "nil"
     /// | NUMBER | STRING
     /// | "(" expression ")"

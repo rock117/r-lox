@@ -1,3 +1,4 @@
+pub(crate) mod block;
 pub(crate) mod expression;
 pub(crate) mod print;
 pub(crate) mod var;
@@ -10,10 +11,12 @@ use crate::object::Object;
 use crate::stmt;
 use crate::token::Token;
 
+#[derive(Clone)]
 pub(crate) enum Stmt {
     Expression(expression::Expression),
     Print(print::Print),
     Var(var::Var),
+    Block(block::Block),
 }
 
 impl Stmt {
@@ -28,6 +31,9 @@ impl Stmt {
             Stmt::Var(v) => visitor
                 .visit_var_stmt(v.clone())
                 .map(|_| Some(Object::Void)),
+            Stmt::Block(v) => visitor
+                .visit_block_stmt(v.clone())
+                .map(|_| Some(Object::Void)),
         }
     }
 
@@ -39,13 +45,18 @@ impl Stmt {
     }
 
     pub fn var(token: Token, initializer: Option<Expr>) -> Self {
-        Stmt::Var(var::Var { name: token, initializer })
+        Stmt::Var(var::Var {
+            name: token,
+            initializer,
+        })
+    }
+    pub fn block(statements: Vec<Stmt>) -> Self {
+        Stmt::Block(block::Block { statements })
     }
 }
 
 pub(crate) trait Visitor {
-
-    /// evalue expression, ignore result
+    /// execute expression, ignore result
     fn visit_expression_stmt(&mut self, stmt: expression::Expression) -> Result<(), ParseError>;
 
     /// print statement
@@ -53,4 +64,7 @@ pub(crate) trait Visitor {
 
     /// define var
     fn visit_var_stmt(&mut self, stmt: var::Var) -> Result<(), ParseError>;
+
+    /// execute block
+    fn visit_block_stmt(&mut self, stmt: block::Block) -> Result<(), ParseError>;
 }
