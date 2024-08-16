@@ -6,7 +6,7 @@ use crate::expr::binary::Binary;
 use crate::expr::grouping::Grouping;
 use crate::expr::literal::Literal;
 use crate::expr::unary::Unary;
-use crate::expr::{variable, Expr};
+use crate::expr::{variable, Expr, assign};
 use crate::lox::Lox;
 use crate::object::Object;
 use crate::stmt::print::Print;
@@ -25,7 +25,7 @@ impl Interpreter {
             environment: Environment::new(),
         }
     }
-    pub fn interpret(&self, statements: &[Stmt]) {
+    pub fn interpret(&mut self, statements: &[Stmt]) {
         for stmt in statements {
             let result = self.execute(stmt);
             if let Err(e) = result {
@@ -35,11 +35,11 @@ impl Interpreter {
         }
     }
 
-    fn evaluate(&self, expr: &Expr) -> Result<Option<Object>, ParseError> {
+    fn evaluate(&mut self, expr: &Expr) -> Result<Option<Object>, ParseError> {
         return expr.accept(self);
     }
 
-    fn execute(&self, stmt: &Stmt) -> Result<Option<Object>, ParseError> {
+    fn execute(&mut self, stmt: &Stmt) -> Result<Option<Object>, ParseError> {
         stmt.accept(self)
     }
 
@@ -84,11 +84,11 @@ impl expr::Visitor for Interpreter {
         Ok(expr.value)
     }
 
-    fn visit_grouping_expr(&self, expr: Grouping) -> Result<Option<Object>, ParseError> {
+    fn visit_grouping_expr(&mut self, expr: Grouping) -> Result<Option<Object>, ParseError> {
         return self.evaluate(&expr.expression);
     }
 
-    fn visit_unary_expr(&self, expr: Unary) -> Result<Option<Object>, ParseError> {
+    fn visit_unary_expr(&mut self, expr: Unary) -> Result<Option<Object>, ParseError> {
         let right = self.evaluate(&expr.right)?;
         match (expr.operator.r#type, right) {
             (TokenType::MINUS, Some(Object::Number(v))) => Ok(Some(Object::Number(-v))),
@@ -97,7 +97,7 @@ impl expr::Visitor for Interpreter {
         }
     }
 
-    fn visit_binary_expr(&self, expr: Binary) -> Result<Option<Object>, ParseError> {
+    fn visit_binary_expr(&mut self, expr: Binary) -> Result<Option<Object>, ParseError> {
         let left = self.evaluate(&expr.left)?;
         let right = self.evaluate(&expr.right)?;
 
@@ -182,19 +182,19 @@ impl expr::Visitor for Interpreter {
         self.environment.get(&expr.name).map(|v| v.clone())
     }
 
-    fn visit_assign_expr(&mut self, expr: Assign) -> Result<Option<Object>, ParseError> {
-        let value = self.evaluate(expr.value)?;
-        self.environment.assign(expr.name, value.clone())?;
+    fn visit_assign_expr(&mut self, expr: assign::Assign) -> Result<Option<Object>, ParseError> {
+        let value = self.evaluate(&expr.value)?;
+        self.environment.assign(&expr.name, value.clone())?;
         Ok(value)
     }
 }
 
 impl stmt::Visitor for Interpreter {
-    fn visit_expression_stmt(&self, stmt: expression::Expression) -> Result<(), ParseError> {
+    fn visit_expression_stmt(&mut self, stmt: expression::Expression) -> Result<(), ParseError> {
         self.evaluate(&stmt.expression).map(|_| ())
     }
 
-    fn visit_print_stmt(&self, stmt: Print) -> Result<(), ParseError> {
+    fn visit_print_stmt(&mut self, stmt: Print) -> Result<(), ParseError> {
         let value = self.evaluate(&stmt.expression)?;
         println!("{:?}", self.stringify(value));
         Ok(())

@@ -5,6 +5,7 @@ pub(crate) mod var;
 use crate::error::ParseError;
 use crate::expr::Expr;
 use crate::expr::Expr::{Binary, Grouping, Literal, Unary};
+use crate::interpreter::Interpreter;
 use crate::object::Object;
 use crate::stmt;
 use crate::token::Token;
@@ -16,7 +17,7 @@ pub(crate) enum Stmt {
 }
 
 impl Stmt {
-    pub fn accept<V: Visitor>(&self, visitor: &V) -> Result<Option<Object>, ParseError> {
+    pub fn accept(&self, visitor: &mut Interpreter) -> Result<Option<Object>, ParseError> {
         match self {
             Stmt::Expression(v) => visitor
                 .visit_expression_stmt(v.clone())
@@ -24,7 +25,9 @@ impl Stmt {
             Stmt::Print(v) => visitor
                 .visit_print_stmt(v.clone())
                 .map(|_| Some(Object::Void)),
-            Stmt::Var(_) => {}
+            Stmt::Var(v) => visitor
+                .visit_var_stmt(v.clone())
+                .map(|_| Some(Object::Void)),
         }
     }
 
@@ -36,18 +39,18 @@ impl Stmt {
     }
 
     pub fn var(token: Token, initializer: Option<Expr>) -> Self {
-        Stmt::Var(var::Var { name, initializer })
+        Stmt::Var(var::Var { name: token, initializer })
     }
 }
 
 pub(crate) trait Visitor {
 
     /// evalue expression, ignore result
-    fn visit_expression_stmt(&self, stmt: expression::Expression) -> Result<(), ParseError>;
+    fn visit_expression_stmt(&mut self, stmt: expression::Expression) -> Result<(), ParseError>;
 
     /// print statement
-    fn visit_print_stmt(&self, stmt: print::Print) -> Result<(), ParseError>;
+    fn visit_print_stmt(&mut self, stmt: print::Print) -> Result<(), ParseError>;
 
     /// define var
-    fn visit_var_stmt(&self, stmt: var::Var) -> Result<(), ParseError>;
+    fn visit_var_stmt(&mut self, stmt: var::Var) -> Result<(), ParseError>;
 }

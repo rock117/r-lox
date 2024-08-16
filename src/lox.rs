@@ -14,12 +14,12 @@ pub struct Lox;
 static HAD_ERROR: AtomicBool = AtomicBool::new(false);
 static HAD_RUNTIME_ERROR: AtomicBool = AtomicBool::new(false);
 
-static interpreter: Lazy<Interpreter> = Lazy::new(|| Interpreter::new());
+// static interpreter: Lazy<Interpreter> = Lazy::new(|| Interpreter::new());
 
 impl Lox {
     pub(crate) fn run_file(path: &str) -> anyhow::Result<()> {
         let source_code = std::fs::read_to_string(path)?;
-        Lox::run(source_code);
+        Lox::run(Interpreter::new(), source_code);
         if HAD_ERROR.load(Ordering::Relaxed) {
             std::process::exit(65);
         }
@@ -36,7 +36,7 @@ impl Lox {
             match std::io::stdin().read_line(&mut line) {
                 Ok(0) => return,
                 Ok(n) => {
-                    Lox::run(line);
+                    Lox::run(Interpreter::new(), line);
                     HAD_ERROR.store(false, Ordering::SeqCst);
                 }
                 Err(e) => return,
@@ -44,7 +44,7 @@ impl Lox {
         }
     }
 
-    fn run(source: String) {
+    fn run(mut interpreter: Interpreter, source: String) {
         let mut scanner = Scanner::new(source);
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);

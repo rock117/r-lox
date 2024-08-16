@@ -86,13 +86,13 @@ impl Parser {
     fn assignment(&mut self) -> Result<Expr, ParseError>  {
         let expr = self.equality()?;
         if self.match_(&[EQUAL]) {
-            let equals = self.previous();
+            let equals = self.previous().clone();
             let value = self.assignment()?;
             if let Expr::Variable(expr) = expr {
                 let name = expr.name;
                 return Ok(Expr::assign(name, value))
             } else {
-                self.error(equals.clone(), "Invalid assignment target.");
+                self.error(equals, "Invalid assignment target."); // TODO thorw?
             }
         }
         Ok(expr)

@@ -10,7 +10,7 @@ pub mod grouping;
 pub mod literal;
 pub mod unary;
 pub(crate) mod variable;
-mod assign;
+pub mod assign;
 
 #[derive(Clone)]
 pub enum Expr {
@@ -24,7 +24,7 @@ pub enum Expr {
 
 impl Expr {
     pub fn assign(name: Token, expr: Expr) -> Self {
-       Assign(Box::new(assign::Assign {name, value}))
+       Assign(Box::new(assign::Assign {name, value: expr}))
     }
     pub fn binary(left: Expr, operator: Token, right: Expr) -> Self {
         Binary(Box::new(binary::Binary::new(left, operator, right)))
@@ -41,12 +41,14 @@ impl Expr {
     pub fn variable(name: Token) -> Self {
         Variable(variable::Variable { name })
     }
-    pub fn accept<V: Visitor>(&self, visitor: &V) -> Result<Option<Object>, ParseError> {
+    pub fn accept<V: Visitor>(&self, visitor: &mut V) -> Result<Option<Object>, ParseError> {
         match self {
             Binary(v) => visitor.visit_binary_expr((**v).clone()),
             Grouping(v) => visitor.visit_grouping_expr((**v).clone()),
             Literal(v) => visitor.visit_literal_expr((**v).clone()),
             Unary(v) => visitor.visit_unary_expr((**v).clone()),
+            Assign(v) => visitor.visit_assign_expr(*v.clone()),
+            Variable(v) => visitor.visit_variable_expr(v.clone())
         }
     }
 }
@@ -67,11 +69,11 @@ pub(crate) trait Visitor {
 
     fn visit_literal_expr(&self, expr: literal::Literal) -> Result<Option<Object>, ParseError>;
 
-    fn visit_grouping_expr(&self, expr: grouping::Grouping) -> Result<Option<Object>, ParseError>;
+    fn visit_grouping_expr(&mut self, expr: grouping::Grouping) -> Result<Option<Object>, ParseError>;
 
-    fn visit_unary_expr(&self, expr: unary::Unary) -> Result<Option<Object>, ParseError>;
+    fn visit_unary_expr(&mut self, expr: unary::Unary) -> Result<Option<Object>, ParseError>;
 
-    fn visit_binary_expr(&self, expr: binary::Binary) -> Result<Option<Object>, ParseError>;
+    fn visit_binary_expr(&mut self, expr: binary::Binary) -> Result<Option<Object>, ParseError>;
 
     /// read expr value
     fn visit_variable_expr(&self, expr: variable::Variable) -> Result<Option<Object>, ParseError>;

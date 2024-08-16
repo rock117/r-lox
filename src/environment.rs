@@ -1,4 +1,4 @@
-use crate::error::{ParseError, VarNotDefinedError};
+use crate::error::{ParseError};
 use crate::object::Object;
 use crate::token::Token;
 use std::collections::HashMap;
@@ -29,8 +29,9 @@ impl Environment {
     }
 
     pub fn assign(&mut self, name: &Token, value: Option<Object>) -> Result<(), ParseError>{
-        if (self.values.containsKey(&name.lexeme)) {
-            self.values.insert(&name.lexeme, value);
+        if (self.values.contains_key(&name.lexeme)) {
+            self.values.insert(name.lexeme.clone(), value);
+            Ok(())
         } else {
             Err(ParseError::new(
                 name.clone(),
