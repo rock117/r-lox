@@ -120,7 +120,7 @@ impl Scanner {
                 } else if self.is_alpha(c) {
                     self.identifier();
                 } else {
-                    Lox::error(self.line, "Unexpected character.")
+                    Lox::error(self.line, &format!("Unexpected character [{}]", c))
                 }
             }
         }

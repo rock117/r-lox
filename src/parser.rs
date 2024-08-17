@@ -21,7 +21,9 @@ impl Parser {
     pub(crate) fn parse(&mut self) -> Result<Vec<Stmt>, ParseError> {
         let mut statements = vec![];
         while !self.is_at_end() {
-            statements.push(self.declaration().unwrap()); // TODO
+            if let Some(dec) = self.declaration(){
+                statements.push(dec);
+            }
         }
         return Ok(statements);
     }
@@ -50,7 +52,7 @@ impl Parser {
     fn statement(&mut self) -> Result<Stmt, ParseError> {
         if self.match_(&[PRINT]) {
             self.print_statement()
-        } else if self.match_(&[PRINT]) {
+        } else if self.match_(&[LEFT_BRACE]) {
             Ok(Stmt::block(self.block()?))
         } else {
             self.expression_statement()
