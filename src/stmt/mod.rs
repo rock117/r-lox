@@ -1,14 +1,13 @@
 pub(crate) mod block;
 pub(crate) mod expression;
+pub mod r#if;
 pub(crate) mod print;
 pub(crate) mod var;
 
 use crate::error::ParseError;
 use crate::expr::Expr;
-use crate::expr::Expr::{Binary, Grouping, Literal, Unary};
 use crate::interpreter::Interpreter;
 use crate::object::Object;
-use crate::stmt;
 use crate::token::Token;
 
 #[derive(Clone)]
@@ -17,6 +16,7 @@ pub(crate) enum Stmt {
     Print(print::Print),
     Var(var::Var),
     Block(block::Block),
+    If(Box<r#if::If>),
 }
 
 impl Stmt {
@@ -33,6 +33,9 @@ impl Stmt {
                 .map(|_| Some(Object::Void)),
             Stmt::Block(v) => visitor
                 .visit_block_stmt(v.clone())
+                .map(|_| Some(Object::Void)),
+            Stmt::If(v) => visitor
+                .visit_if_stmt(*v.clone())
                 .map(|_| Some(Object::Void)),
         }
     }
@@ -53,6 +56,9 @@ impl Stmt {
     pub fn block(statements: Vec<Stmt>) -> Self {
         Stmt::Block(block::Block { statements })
     }
+    pub fn r#if(condition: Expr, thenBranch: Stmt, elseBranch: Option<Stmt>) -> Self {
+        Stmt::If(Box::new(r#if::If { condition, thenBranch, elseBranch }))
+    }
 }
 
 pub(crate) trait Visitor {
@@ -67,4 +73,7 @@ pub(crate) trait Visitor {
 
     /// execute block
     fn visit_block_stmt(&mut self, stmt: block::Block) -> Result<(), ParseError>;
+
+    /// execute if statement
+    fn visit_if_stmt(&mut self, stmt: r#if::If) -> Result<(), ParseError>;
 }

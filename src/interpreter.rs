@@ -6,13 +6,11 @@ use crate::expr::binary::Binary;
 use crate::expr::grouping::Grouping;
 use crate::expr::literal::Literal;
 use crate::expr::unary::Unary;
-use crate::expr::Expr::Assign;
 use crate::expr::{assign, variable, Expr};
 use crate::lox::Lox;
 use crate::object::Object;
 use crate::stmt::print::Print;
-use crate::stmt::var::Var;
-use crate::stmt::{block, expression, Stmt};
+use crate::stmt::{block, expression, r#if, Stmt};
 use crate::token::token_type::TokenType;
 use crate::{expr, stmt};
 
@@ -233,6 +231,19 @@ impl stmt::Visitor for Interpreter {
             stmt.statements,
             Environment::new_from_enclosing(self.environment.clone()),
         )
+    }
+
+    fn visit_if_stmt(&mut self, stmt: r#if::If) -> Result<(), ParseError> {
+        let value = self.evaluate(&stmt.condition)?;
+        if self.is_truthy(&value) {
+            self.execute(&stmt.thenBranch)?;
+            return Ok(())
+        }
+        if let Some(elseBranch) = stmt.elseBranch {
+            self.execute(&elseBranch)?;
+            return Ok(())
+        }
+        Ok(())
     }
 }
 

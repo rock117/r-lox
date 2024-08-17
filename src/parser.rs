@@ -21,7 +21,7 @@ impl Parser {
     pub(crate) fn parse(&mut self) -> Result<Vec<Stmt>, ParseError> {
         let mut statements = vec![];
         while !self.is_at_end() {
-            if let Some(dec) = self.declaration(){
+            if let Some(dec) = self.declaration() {
                 statements.push(dec);
             }
         }
@@ -48,15 +48,30 @@ impl Parser {
         }
     }
 
-    /// statement → exprStmt | printStmt | block ;
+    /// statement → exprStmt | ifStmt | printStmt | block ;
     fn statement(&mut self) -> Result<Stmt, ParseError> {
-        if self.match_(&[PRINT]) {
+        if self.match_(&[IF]) {
+            self.if_statement()
+        } else if self.match_(&[PRINT]) {
             self.print_statement()
         } else if self.match_(&[LEFT_BRACE]) {
             Ok(Stmt::block(self.block()?))
         } else {
             self.expression_statement()
         }
+    }
+
+    fn if_statement(&mut self) -> Result<Stmt, ParseError> {
+        self.consume(LEFT_PAREN, "Expect '(' after 'if'.")?;
+        let condition = self.expression()?;
+        self.consume(RIGHT_PAREN, "Expect ')' after if condition.")?;
+        let thenBranch = self.statement()?;
+        let mut elseBranch = if self.match_(&[ELSE]) {
+            Some(self.statement()?)
+        } else {
+            None
+        };
+        Ok(Stmt::r#if(condition, thenBranch, elseBranch))
     }
 
     /// printStmt → "print" expression ";" ;
