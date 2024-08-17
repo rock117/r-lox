@@ -49,17 +49,24 @@ impl Parser {
         }
     }
 
-    /// statement → exprStmt | ifStmt | printStmt | block ;
+    /// statement → exprStmt | forStmt | ifStmt | printStmt | whileStmt | block ;
     fn statement(&mut self) -> Result<Stmt, ParseError> {
-        if self.match_(&[IF]) {
-            self.if_statement()
-        } else if self.match_(&[PRINT]) {
-            self.print_statement()
-        } else if self.match_(&[LEFT_BRACE]) {
-            Ok(Stmt::block(self.block()?))
-        } else {
-            self.expression_statement()
+        if self.match_(&[FOR]) {
+            return self.for_statement();
         }
+        if self.match_(&[IF]) {
+            return self.if_statement();
+        }
+        if self.match_(&[PRINT]) {
+            return self.print_statement();
+        }
+        if self.match_(&[WHILE]) {
+            return self.while_statement();
+        }
+        if self.match_(&[LEFT_BRACE]) {
+            return Ok(Stmt::block(self.block()?));
+        }
+        return self.expression_statement();
     }
 
     fn if_statement(&mut self) -> Result<Stmt, ParseError> {
@@ -82,6 +89,15 @@ impl Parser {
         Ok(Stmt::print(value))
     }
 
+    /// whileStmt → "while" "(" expression ")" statement ;
+    fn while_statement(&mut self) -> Result<Stmt, ParseError> {
+        self.consume(LEFT_PAREN, "Expect '(' after 'while'.")?;
+        let condition = self.expression()?;
+        self.consume(RIGHT_PAREN, "Expect ')' after condition.")?;
+        let body = self.statement()?;
+        Ok(Stmt::r#while(condition, body))
+    }
+
     /// varDecl → "var" IDENTIFIER ( "=" expression )? ";"
     fn var_declaration(&mut self) -> Result<Stmt, ParseError> {
         let name = self.consume(IDENTIFIER, "Expect variable name.")?; // var had been match by its caller
@@ -99,6 +115,49 @@ impl Parser {
         let expr = self.expression()?;
         self.consume(SEMICOLON, "Expect ';' after expression.")?;
         Ok(Stmt::expression(expr))
+    }
+
+    /// forStmt → "for" "(" ( varDecl | exprStmt | ";" )
+    ///  expression? ";"
+    ///  expression? ")" statement ;
+    fn for_statement(&mut self) -> Result<Stmt, ParseError> {
+        self.consume(LEFT_PAREN, "Expect '(' after 'for'.")?;
+
+        let initializer = if self.match_(&[SEMICOLON]) {
+            None
+        } else if self.match_(&[VAR]) {
+            Some(self.var_declaration()?)
+        } else {
+            Some(self.expression_statement()?)
+        };
+        let mut condition = if !self.check(SEMICOLON) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+        self.consume(SEMICOLON, "Expect ';' after loop condition.")?;
+
+        let increment = if !self.check(RIGHT_PAREN) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+        self.consume(RIGHT_PAREN, "Expect ')' after for clauses.")?;
+
+        let mut body = self.statement()?;
+        if let Some(increment) = increment {
+            body = Stmt::block(vec![body, Stmt::expression(increment)]);
+        };
+        if condition.is_none() {
+            condition = Some(Expr::literal(Some(Object::Boolean(true))))
+        }
+        if let Some(condition) = condition {
+            body = Stmt::r#while(condition, body);
+        }
+        if let Some(initializer) = initializer {
+            body =  Stmt::block(vec!(initializer, body));
+        }
+        Ok(body)
     }
 
     fn block(&mut self) -> Result<Vec<Stmt>, ParseError> {

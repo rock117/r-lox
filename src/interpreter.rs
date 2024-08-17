@@ -6,11 +6,11 @@ use crate::expr::binary::Binary;
 use crate::expr::grouping::Grouping;
 use crate::expr::literal::Literal;
 use crate::expr::unary::Unary;
-use crate::expr::{assign, variable, Expr, logical};
+use crate::expr::{assign, logical, variable, Expr};
 use crate::lox::Lox;
 use crate::object::Object;
 use crate::stmt::print::Print;
-use crate::stmt::{block, expression, r#if, Stmt};
+use crate::stmt::{block, expression, r#if, r#while, Stmt};
 use crate::token::token_type::TokenType;
 use crate::{expr, stmt};
 
@@ -151,9 +151,15 @@ impl expr::Visitor for Interpreter {
             (TokenType::PLUS, Some(Object::Str(left)), Some(Object::Str(right))) => {
                 Ok(Some(Object::Str(format!("{}{}", left, right))))
             }
+            (TokenType::PLUS, Some(Object::Number(left)), Some(Object::Str(right))) => {
+                Ok(Some(Object::Str(format!("{}{}", left, right))))
+            }
+            (TokenType::PLUS, Some(Object::Str(right)), Some(Object::Number(left))) => {
+                Ok(Some(Object::Str(format!("{}{}", left, right))))
+            }
             (TokenType::PLUS, _, _) => Err(ParseError::new(
                 expr.operator,
-                "Operands must be two numbers or two strings.".into(),
+                "Operands must be two numbers/strings.".into(),
             )),
 
             (TokenType::GREATER, Some(Object::Number(left)), Some(Object::Number(right))) => {
@@ -200,11 +206,12 @@ impl expr::Visitor for Interpreter {
 
     fn visit_assign_expr(&mut self, expr: assign::Assign) -> Result<Option<Object>, ParseError> {
         let value = self.evaluate(&expr.value)?;
+        println!("{} = {:?}", expr.name, value.clone());
         self.environment.assign(&expr.name, value.clone())?;
         Ok(value)
     }
 
-    fn visit_logical_expr(&mut self, expr:  logical::Logical) -> Result<Option<Object>, ParseError> {
+    fn visit_logical_expr(&mut self, expr: logical::Logical) -> Result<Option<Object>, ParseError> {
         let left = self.evaluate(&expr.left)?;
         if expr.operator.r#type == TokenType::OR {
             if self.is_truthy(&left) {
@@ -251,11 +258,21 @@ impl stmt::Visitor for Interpreter {
         let value = self.evaluate(&stmt.condition)?;
         if self.is_truthy(&value) {
             self.execute(&stmt.thenBranch)?;
-            return Ok(())
+            return Ok(());
         }
         if let Some(elseBranch) = stmt.elseBranch {
             self.execute(&elseBranch)?;
-            return Ok(())
+            return Ok(());
+        }
+        Ok(())
+    }
+
+    fn visit_while_stmt(&mut self, stmt: r#while::While) -> Result<(), ParseError> {
+        let mut value = self.evaluate(&stmt.condition)?;
+        while self.is_truthy(&value) {
+            println!("visit_while_stmt is_truthy value: {:?}", value);
+            self.execute(&stmt.body)?; // TODO fix bug, is_truthy always true/false
+            value = self.evaluate(&stmt.condition)?;
         }
         Ok(())
     }

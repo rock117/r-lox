@@ -3,6 +3,7 @@ pub(crate) mod expression;
 pub mod r#if;
 pub(crate) mod print;
 pub(crate) mod var;
+pub(crate) mod r#while;
 
 use crate::error::ParseError;
 use crate::expr::Expr;
@@ -17,6 +18,7 @@ pub(crate) enum Stmt {
     Var(var::Var),
     Block(block::Block),
     If(Box<r#if::If>),
+    While(Box<r#while::While>),
 }
 
 impl Stmt {
@@ -36,6 +38,9 @@ impl Stmt {
                 .map(|_| Some(Object::Void)),
             Stmt::If(v) => visitor
                 .visit_if_stmt(*v.clone())
+                .map(|_| Some(Object::Void)),
+            Stmt::While(v) => visitor
+                .visit_while_stmt(*v.clone())
                 .map(|_| Some(Object::Void)),
         }
     }
@@ -57,7 +62,14 @@ impl Stmt {
         Stmt::Block(block::Block { statements })
     }
     pub fn r#if(condition: Expr, thenBranch: Stmt, elseBranch: Option<Stmt>) -> Self {
-        Stmt::If(Box::new(r#if::If { condition, thenBranch, elseBranch }))
+        Stmt::If(Box::new(r#if::If {
+            condition,
+            thenBranch,
+            elseBranch,
+        }))
+    }
+    pub fn r#while(condition: Expr, body: Stmt) -> Self {
+        Stmt::While(Box::new(r#while::While { condition, body }))
     }
 }
 
@@ -76,4 +88,7 @@ pub(crate) trait Visitor {
 
     /// execute if statement
     fn visit_if_stmt(&mut self, stmt: r#if::If) -> Result<(), ParseError>;
+
+    /// execute while statement
+    fn visit_while_stmt(&mut self, stmt: r#while::While) -> Result<(), ParseError>;
 }

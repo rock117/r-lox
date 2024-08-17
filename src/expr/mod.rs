@@ -9,9 +9,9 @@ pub mod ast_printer;
 pub mod binary;
 pub mod grouping;
 pub mod literal;
+pub mod logical;
 pub mod unary;
 pub(crate) mod variable;
-pub mod logical;
 
 #[derive(Clone)]
 pub enum Expr {
@@ -44,7 +44,11 @@ impl Expr {
         Variable(variable::Variable { name })
     }
     pub fn logical(left: Expr, operator: Token, right: Expr) -> Self {
-        Logical(Box::new(logical::Logical {left, operator, right }))
+        Logical(Box::new(logical::Logical {
+            left,
+            operator,
+            right,
+        }))
     }
     pub fn accept<V: Visitor>(&self, visitor: &mut V) -> Result<Option<Object>, ParseError> {
         match self {
@@ -92,5 +96,4 @@ pub(crate) trait Visitor {
 
     /// evalue logical expression
     fn visit_logical_expr(&mut self, expr: logical::Logical) -> Result<Option<Object>, ParseError>;
-
 }
