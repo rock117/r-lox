@@ -1,5 +1,6 @@
 use crate::error::ParseError;
 use crate::expr::Expr;
+use crate::expr::Expr::Logical;
 use crate::lox::Lox;
 use crate::object::Object;
 use crate::stmt::Stmt;
@@ -109,10 +110,9 @@ impl Parser {
         Ok(statements)
     }
 
-    /// assignment → IDENTIFIER "=" assignment
-    /// | equality
+    /// assignment → IDENTIFIER "=" assignment | logic_or
     fn assignment(&mut self) -> Result<Expr, ParseError> {
-        let expr = self.equality()?;
+        let expr = self.or()?;
         if self.match_(&[EQUAL]) {
             let equals = self.previous().clone();
             let value = self.assignment()?;
@@ -122,6 +122,28 @@ impl Parser {
             } else {
                 self.error(equals, "Invalid assignment target."); // TODO thorw?
             }
+        }
+        Ok(expr)
+    }
+
+    /// logic_or → logic_and ( "or" logic_and )* ;
+    fn or(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.and()?;
+        while self.match_(&[OR]) {
+            let operator = self.previous().clone();
+            let right = self.and()?;
+            expr = Expr::logical(expr, operator, right);
+        }
+        Ok(expr)
+    }
+
+    /// logic_and → equality ( "and" equality )* ;
+    fn and(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.equality()?;
+        while self.match_(&[AND]) {
+            let operator = self.previous().clone();
+            let right = self.equality()?;
+            expr = Expr::logical(expr, operator, right);
         }
         Ok(expr)
     }

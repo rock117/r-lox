@@ -6,7 +6,7 @@ use crate::expr::binary::Binary;
 use crate::expr::grouping::Grouping;
 use crate::expr::literal::Literal;
 use crate::expr::unary::Unary;
-use crate::expr::{assign, variable, Expr};
+use crate::expr::{assign, variable, Expr, logical};
 use crate::lox::Lox;
 use crate::object::Object;
 use crate::stmt::print::Print;
@@ -202,6 +202,20 @@ impl expr::Visitor for Interpreter {
         let value = self.evaluate(&expr.value)?;
         self.environment.assign(&expr.name, value.clone())?;
         Ok(value)
+    }
+
+    fn visit_logical_expr(&mut self, expr:  logical::Logical) -> Result<Option<Object>, ParseError> {
+        let left = self.evaluate(&expr.left)?;
+        if expr.operator.r#type == TokenType::OR {
+            if self.is_truthy(&left) {
+                return Ok(left);
+            }
+        } else {
+            if !self.is_truthy(&left) {
+                return Ok(left);
+            }
+        }
+        return self.evaluate(&expr.right);
     }
 }
 
