@@ -1,6 +1,6 @@
 use crate::expr::Expr;
 use crate::token::Token;
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct Binary {
     pub(crate) left: Expr,
     pub(crate) operator: Token,

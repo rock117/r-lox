@@ -163,7 +163,9 @@ impl Parser {
     fn block(&mut self) -> Result<Vec<Stmt>, ParseError> {
         let mut statements = vec![];
         while !self.check(RIGHT_BRACE) && !self.is_at_end() {
-            statements.push(self.declaration().unwrap()); // TODO
+            if let Some(decl) = self.declaration() {
+                statements.push(decl);
+            }
         }
         self.consume(RIGHT_BRACE, "Expect '}' after block.")?;
         Ok(statements)
@@ -248,6 +250,7 @@ impl Parser {
         return expr;
     }
 
+    /// unary → ( "!" | "-" ) unary | call ;
     fn unary(&mut self) -> Result<Expr, ParseError> {
         if self.match_(&[BANG, MINUS]) {
             let operator = self.previous().clone(); // TODO
@@ -257,6 +260,15 @@ impl Parser {
         return self.primary();
     }
 
+    /// call → primary ( "(" arguments? ")" )* ;
+    fn call(&mut self) -> Result<Expr, ParseError> {
+        todo!()
+    }
+
+    /// arguments → expression ( "," expression )* ;
+    fn arguments(&mut self) -> Result<Expr, ParseError> {
+        todo!()
+    }
     /// To access a variable, we define a new kind of primary expressio
     ///
     /// primary → "true" | "false" | "nil"

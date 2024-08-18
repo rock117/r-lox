@@ -11,7 +11,7 @@ use crate::interpreter::Interpreter;
 use crate::object::Object;
 use crate::token::Token;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(crate) enum Stmt {
     Expression(expression::Expression),
     Print(print::Print),

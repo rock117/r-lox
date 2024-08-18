@@ -1,5 +1,5 @@
 use crate::token::Token;
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct Variable {
     pub name: Token,
 }

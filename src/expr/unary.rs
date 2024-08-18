@@ -1,7 +1,7 @@
 use crate::expr::Expr;
 use crate::token::Token;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct Unary {
     pub(crate) operator: Token,
     pub(crate) right: Expr,

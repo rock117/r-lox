@@ -1,5 +1,5 @@
 use crate::expr::{Expr, Visitor};
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct Grouping {
     pub(crate) expression: Expr,
 }

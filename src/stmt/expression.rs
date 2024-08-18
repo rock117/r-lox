@@ -1,6 +1,6 @@
 use crate::expr::Expr;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct Expression {
     pub(crate) expression: Expr,
 }

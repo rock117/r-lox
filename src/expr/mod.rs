@@ -13,7 +13,7 @@ pub mod logical;
 pub mod unary;
 pub(crate) mod variable;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Assign(Box<assign::Assign>),
     Binary(Box<binary::Binary>),
