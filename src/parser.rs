@@ -155,7 +155,7 @@ impl Parser {
             body = Stmt::r#while(condition, body);
         }
         if let Some(initializer) = initializer {
-            body =  Stmt::block(vec!(initializer, body));
+            body = Stmt::block(vec![initializer, body]);
         }
         Ok(body)
     }

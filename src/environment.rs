@@ -1,11 +1,13 @@
 use crate::error::ParseError;
 use crate::object::Object;
 use crate::token::Token;
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 #[derive(Clone)]
 pub(crate) struct Environment {
-    enclosing: Option<Box<Environment>>,
+    enclosing: Option<Rc<RefCell<Environment>>>,
     values: HashMap<String, Option<Object>>,
 }
 
@@ -17,20 +19,21 @@ impl Environment {
         }
     }
 
-    pub fn new_from_enclosing(enclosing: Environment) -> Self {
+    pub fn new_from_enclosing(enclosing: Rc<RefCell<Environment>>) -> Self {
         Environment {
-            enclosing: Some(Box::new(enclosing)),
+            enclosing: Some(enclosing),
             values: HashMap::new(),
         }
     }
 
-    pub fn get(&self, name: &Token) -> Result<&Option<Object>, ParseError> {
+    pub fn get(&self, name: &Token) -> Result<Option<Object>, ParseError> {
         let value = self.values.get(&name.lexeme);
         match value {
-            Some(v) => Ok(v),
+            Some(v) => Ok(v.clone()),
             None => {
-                if let Some(enclosing) = &self.enclosing {
-                    return enclosing.get(name);
+                if let Some(enclosing) = self.enclosing.clone() {
+                    return Ok(enclosing.borrow_mut().get(name)?.clone());
+                    // return enclosing.get(name);
                 }
 
                 Err(ParseError::new(
@@ -52,7 +55,7 @@ impl Environment {
         }
 
         if let Some(enclosing) = &mut self.enclosing {
-            return enclosing.assign(name, value);
+            return enclosing.borrow_mut().assign(name, value);
         }
 
         return Err(ParseError::new(

@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::fmt::Display;
+use std::rc::Rc;
 
 use crate::environment::Environment;
 use crate::error::ParseError;
@@ -15,13 +17,13 @@ use crate::token::token_type::TokenType;
 use crate::{expr, stmt};
 
 pub(crate) struct Interpreter {
-    environment: Environment,
+    environment: Rc<RefCell<Environment>>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
         Self {
-            environment: Environment::new(),
+            environment: Rc::new(RefCell::new(Environment::new())),
         }
     }
     pub fn interpret(&mut self, statements: &[Stmt]) {
@@ -83,7 +85,7 @@ impl Interpreter {
         environment: Environment,
     ) -> Result<(), ParseError> {
         let previous = self.environment.clone();
-        self.environment = environment;
+        self.environment = Rc::new(RefCell::new(environment));
         for stmt in statements {
             if let Err(e) = self.execute(&stmt) {
                 self.environment = previous;
@@ -154,7 +156,7 @@ impl expr::Visitor for Interpreter {
             (TokenType::PLUS, Some(Object::Number(left)), Some(Object::Str(right))) => {
                 Ok(Some(Object::Str(format!("{}{}", left, right))))
             }
-            (TokenType::PLUS, Some(Object::Str(right)), Some(Object::Number(left))) => {
+            (TokenType::PLUS, Some(Object::Str(left)), Some(Object::Number(right))) => {
                 Ok(Some(Object::Str(format!("{}{}", left, right))))
             }
             (TokenType::PLUS, _, _) => Err(ParseError::new(
@@ -201,13 +203,14 @@ impl expr::Visitor for Interpreter {
     }
 
     fn visit_variable_expr(&self, expr: variable::Variable) -> Result<Option<Object>, ParseError> {
-        self.environment.get(&expr.name).map(|v| v.clone())
+        self.environment.borrow().get(&expr.name)
     }
 
     fn visit_assign_expr(&mut self, expr: assign::Assign) -> Result<Option<Object>, ParseError> {
         let value = self.evaluate(&expr.value)?;
-        println!("{} = {:?}", expr.name, value.clone());
-        self.environment.assign(&expr.name, value.clone())?;
+        self.environment
+            .borrow_mut()
+            .assign(&expr.name, value.clone())?;
         Ok(value)
     }
 
@@ -233,7 +236,7 @@ impl stmt::Visitor for Interpreter {
 
     fn visit_print_stmt(&mut self, stmt: Print) -> Result<(), ParseError> {
         let value = self.evaluate(&stmt.expression)?;
-        println!("{:?}", self.stringify(value));
+        println!("{}", self.stringify(value));
         Ok(())
     }
 
@@ -243,7 +246,9 @@ impl stmt::Visitor for Interpreter {
         } else {
             None
         };
-        self.environment.define(stmt.name.lexeme, value);
+        self.environment
+            .borrow_mut()
+            .define(stmt.name.lexeme, value);
         Ok(())
     }
 
@@ -270,7 +275,6 @@ impl stmt::Visitor for Interpreter {
     fn visit_while_stmt(&mut self, stmt: r#while::While) -> Result<(), ParseError> {
         let mut value = self.evaluate(&stmt.condition)?;
         while self.is_truthy(&value) {
-            println!("visit_while_stmt is_truthy value: {:?}", value);
             self.execute(&stmt.body)?; // TODO fix bug, is_truthy always true/false
             value = self.evaluate(&stmt.condition)?;
         }
