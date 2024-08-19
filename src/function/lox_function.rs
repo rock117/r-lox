@@ -20,8 +20,11 @@ impl LoxFunction {
                 environment.define(param.lexeme.clone(), arg.clone());
             }
         }
-
-        interpreter.execute_block(self.declaration.body.clone(), environment)?;
+        let result = interpreter.execute_block(self.declaration.body.clone(), environment);
+        if let Err(returnValue) = result {
+           // return returnValue.value
+            todo!()
+        }
         Ok(None)
     }
 

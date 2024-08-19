@@ -3,7 +3,7 @@ use std::fmt::Display;
 use std::rc::Rc;
 
 use crate::environment::Environment;
-use crate::error::ParseError;
+use crate::error::{ParseError, Return};
 use crate::expr::binary::Binary;
 use crate::expr::call::Call;
 use crate::expr::grouping::Grouping;
@@ -15,7 +15,7 @@ use crate::function::native_function::NativeFunction;
 use crate::lox::Lox;
 use crate::object::Object;
 use crate::stmt::print::Print;
-use crate::stmt::{block, expression, r#if, r#while, Stmt};
+use crate::stmt::{block, expression, r#if, r#return, r#while, Stmt};
 use crate::token::token_type::TokenType;
 use crate::{expr, stmt};
 use crate::function::lox_function::LoxFunction;
@@ -338,6 +338,17 @@ impl stmt::Visitor for Interpreter {
         let function = Box::new(function::LoxCallable::LoxFunction(function));
         self.environment.borrow_mut().define(name, Some(Object::Function(function)));
         Ok(())
+    }
+
+    fn visit_return_stmt(&mut self, stmt: r#return::Return) -> Result<(), ParseError> {
+        let value = if let Some(value) = stmt.value{
+            self.evaluate(&value)?
+        } else {
+            None
+        };
+        // Err(Return {value}) // TODO
+        //Err(ParseError::new(value))
+        todo!()
     }
 }
 

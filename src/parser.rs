@@ -51,7 +51,13 @@ impl Parser {
         }
     }
 
-    /// statement → exprStmt | forStmt | ifStmt | printStmt | whileStmt | block ;
+    /// statement → exprStmt
+    ///  | forStmt
+    ///  | ifStmt
+    ///  | printStmt
+    ///  | returnStmt
+    ///  | whileStmt
+    ///  | block ;
     fn statement(&mut self) -> Result<Stmt, ParseError> {
         if self.match_(&[FOR]) {
             return self.for_statement();
@@ -61,6 +67,9 @@ impl Parser {
         }
         if self.match_(&[PRINT]) {
             return self.print_statement();
+        }
+        if self.match_(&[RETURN]) {
+            return self.return_statement()
         }
         if self.match_(&[WHILE]) {
             return self.while_statement();
@@ -76,7 +85,7 @@ impl Parser {
         let condition = self.expression()?;
         self.consume(RIGHT_PAREN, "Expect ')' after if condition.")?;
         let thenBranch = self.statement()?;
-        let mut elseBranch = if self.match_(&[ELSE]) {
+        let elseBranch = if self.match_(&[ELSE]) {
             Some(self.statement()?)
         } else {
             None
@@ -91,6 +100,20 @@ impl Parser {
         Ok(Stmt::print(value))
     }
 
+    /// returnStmt → "return" expression? ";" ;
+    fn return_statement(&mut self) -> Result<Stmt, ParseError> {
+        let keyword = self.previous().clone();
+        let value = if !self.check(SEMICOLON) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+        self.consume(SEMICOLON, "Expect ';' after return value.")?;
+        let Some(value) = value else {
+            return Err(ParseError::new(keyword, "Unknown error when parse return_statement".into()));
+        };
+        Ok(Stmt::r#return(keyword, value))
+    }
     /// whileStmt → "while" "(" expression ")" statement ;
     fn while_statement(&mut self) -> Result<Stmt, ParseError> {
         self.consume(LEFT_PAREN, "Expect '(' after 'while'.")?;

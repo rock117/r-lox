@@ -5,6 +5,7 @@ pub mod r#if;
 pub(crate) mod print;
 pub(crate) mod var;
 pub(crate) mod r#while;
+pub(crate) mod r#return;
 
 use crate::error::ParseError;
 use crate::expr::Expr;
@@ -21,6 +22,7 @@ pub(crate) enum Stmt {
     If(Box<r#if::If>),
     While(Box<r#while::While>),
     Function(Box<function::Function>),
+    Return(r#return::Return)
 }
 
 impl Stmt {
@@ -44,7 +46,8 @@ impl Stmt {
             Stmt::While(v) => visitor
                 .visit_while_stmt(*v.clone())
                 .map(|_| Some(Object::Void)),
-            Stmt::Function(f) => visitor.visit_function_stmt(*f.clone()).map(|_| Some(Object::Void))
+            Stmt::Function(f) => visitor.visit_function_stmt(*f.clone()).map(|_| Some(Object::Void)),
+            Stmt::Return(v) => visitor.visit_return_stmt(v.clone()).map(|_| Some(Object::Void)),
         }
     }
 
@@ -78,6 +81,10 @@ impl Stmt {
     pub fn function(name: Token, params: Vec<Token>, body: Vec<Stmt>) -> Self {
         Stmt::Function(Box::new(function::Function { name, params, body }))
     }
+
+    pub fn r#return(keyword: Token, value: Expr) -> Self {
+        Stmt::Return(r#return::Return {keyword, value: Some(value)})
+    }
 }
 
 pub(crate) trait Visitor {
@@ -101,4 +108,6 @@ pub(crate) trait Visitor {
 
     /// define function
     fn visit_function_stmt(&mut self, stmt: function::Function)  -> Result<(), ParseError>;
+
+    fn visit_return_stmt(&mut self, stmt: r#return::Return)  -> Result<(), ParseError>;
 }
