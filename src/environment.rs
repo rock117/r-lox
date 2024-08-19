@@ -7,7 +7,9 @@ use std::rc::Rc;
 
 #[derive(Clone)]
 pub(crate) struct Environment {
+    /// parent scope's env
     enclosing: Option<Rc<RefCell<Environment>>>,
+    /// current scope's env
     values: HashMap<String, Option<Object>>,
 }
 
@@ -33,7 +35,6 @@ impl Environment {
             None => {
                 if let Some(enclosing) = self.enclosing.clone() {
                     return Ok(enclosing.borrow_mut().get(name)?.clone());
-                    // return enclosing.get(name);
                 }
 
                 Err(ParseError::new(

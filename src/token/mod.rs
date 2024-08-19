@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter, Write};
 
 pub(crate) mod token_type;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub(crate) r#type: TokenType,
     pub(crate) lexeme: String,

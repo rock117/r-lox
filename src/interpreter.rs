@@ -5,25 +5,41 @@ use std::rc::Rc;
 use crate::environment::Environment;
 use crate::error::ParseError;
 use crate::expr::binary::Binary;
+use crate::expr::call::Call;
 use crate::expr::grouping::Grouping;
 use crate::expr::literal::Literal;
 use crate::expr::unary::Unary;
 use crate::expr::{assign, logical, variable, Expr};
+use crate::function;
+use crate::function::native_function::NativeFunction;
 use crate::lox::Lox;
 use crate::object::Object;
 use crate::stmt::print::Print;
 use crate::stmt::{block, expression, r#if, r#while, Stmt};
 use crate::token::token_type::TokenType;
 use crate::{expr, stmt};
+use crate::function::lox_function::LoxFunction;
+use crate::stmt::function::Function;
 
 pub(crate) struct Interpreter {
+    globals: Rc<RefCell<Environment>>,
     environment: Rc<RefCell<Environment>>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
+        let mut globals = Rc::new(RefCell::new(Environment::new()));
+        globals.borrow_mut().define(
+            "clock".into(),
+            Some(Object::Function(Box::new(
+                function::LoxCallable::NativeFunction(NativeFunction::clock()),
+            ))),
+        );
+        let environment = globals.clone();
+
         Self {
-            environment: Rc::new(RefCell::new(Environment::new())),
+            globals,
+            environment,
         }
     }
     pub fn interpret(&mut self, statements: &[Stmt]) {
@@ -60,6 +76,7 @@ impl Interpreter {
             }
             Object::Boolean(v) => v.to_string(),
             Object::Void => "".into(),
+            Object::Function(f) => f.to_string(),
         }
     }
 
@@ -79,7 +96,7 @@ impl Interpreter {
         }
     }
 
-    fn execute_block(
+    pub(crate) fn execute_block(
         &mut self,
         statements: Vec<Stmt>,
         environment: Environment,
@@ -227,6 +244,40 @@ impl expr::Visitor for Interpreter {
         }
         return self.evaluate(&expr.right);
     }
+
+    fn visit_call_expr(&mut self, expr: Call) -> Result<Option<Object>, ParseError> {
+        let callee = self.evaluate(&expr.callee)?;
+        let mut arguments = vec![];
+        for argument in expr.arguments {
+            arguments.push(self.evaluate(&argument)?);
+        }
+
+        let Some(callee) = callee else {
+            return Err(ParseError::new(
+                expr.paren,
+                "Can only call functions and classes.".into(),
+            ));
+        };
+
+        let Object::Function(function) = callee else {
+            return Err(ParseError::new(
+                expr.paren,
+                "Can only call functions and classes.".into(),
+            ));
+        };
+
+        if (arguments.len() != function.arity()) {
+            return Err(ParseError::new(
+                expr.paren,
+                format!(
+                    "Expected {} arguments but got {}",
+                    function.arity(),
+                    arguments.len()
+                ),
+            ));
+        }
+        function.call(self, arguments)
+    }
 }
 
 impl stmt::Visitor for Interpreter {
@@ -278,6 +329,14 @@ impl stmt::Visitor for Interpreter {
             self.execute(&stmt.body)?; // TODO fix bug, is_truthy always true/false
             value = self.evaluate(&stmt.condition)?;
         }
+        Ok(())
+    }
+
+    fn visit_function_stmt(&mut self, stmt: Function)  -> Result<(), ParseError> {
+        let name = stmt.name.lexeme.clone();
+        let function = LoxFunction {declaration: stmt};
+        let function = Box::new(function::LoxCallable::LoxFunction(function));
+        self.environment.borrow_mut().define(name, Some(Object::Function(function)));
         Ok(())
     }
 }

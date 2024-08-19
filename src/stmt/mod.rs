@@ -1,5 +1,6 @@
 pub(crate) mod block;
 pub(crate) mod expression;
+pub mod function;
 pub mod r#if;
 pub(crate) mod print;
 pub(crate) mod var;
@@ -19,6 +20,7 @@ pub(crate) enum Stmt {
     Block(block::Block),
     If(Box<r#if::If>),
     While(Box<r#while::While>),
+    Function(Box<function::Function>),
 }
 
 impl Stmt {
@@ -42,6 +44,7 @@ impl Stmt {
             Stmt::While(v) => visitor
                 .visit_while_stmt(*v.clone())
                 .map(|_| Some(Object::Void)),
+            Stmt::Function(f) => visitor.visit_function_stmt(*f.clone()).map(|_| Some(Object::Void))
         }
     }
 
@@ -71,6 +74,10 @@ impl Stmt {
     pub fn r#while(condition: Expr, body: Stmt) -> Self {
         Stmt::While(Box::new(r#while::While { condition, body }))
     }
+
+    pub fn function(name: Token, params: Vec<Token>, body: Vec<Stmt>) -> Self {
+        Stmt::Function(Box::new(function::Function { name, params, body }))
+    }
 }
 
 pub(crate) trait Visitor {
@@ -91,4 +98,7 @@ pub(crate) trait Visitor {
 
     /// execute while statement
     fn visit_while_stmt(&mut self, stmt: r#while::While) -> Result<(), ParseError>;
+
+    /// define function
+    fn visit_function_stmt(&mut self, stmt: function::Function)  -> Result<(), ParseError>;
 }

@@ -33,9 +33,11 @@ impl Parser {
         self.assignment()
     }
 
-    /// declaration → varDecl | statement
+    /// declaration → funDecl | varDecl | statement
     fn declaration(&mut self) -> Option<Stmt> {
-        let res = if self.match_(&[VAR]) {
+        let res = if self.match_(&[FUN]) {
+            self.function("function")
+        } else if self.match_(&[VAR]) {
             self.var_declaration()
         } else {
             self.statement()
@@ -115,6 +117,30 @@ impl Parser {
         let expr = self.expression()?;
         self.consume(SEMICOLON, "Expect ';' after expression.")?;
         Ok(Stmt::expression(expr))
+    }
+
+    fn function(&mut self, kind: &str) -> Result<Stmt, ParseError> {
+        let name = self.consume(IDENTIFIER, &format!("Expect {} name.", kind))?;
+        self.consume(LEFT_PAREN, &format!("Expect '(' after {} name.", kind))?;
+        let mut parameters = vec![];
+        if !self.check(RIGHT_PAREN) {
+            loop {
+                if (parameters.len() >= 255) {
+                    self.error(self.peek().clone(), "Can't have more than 255 parameters.");
+                }
+                parameters.push(self.consume(IDENTIFIER, "Expect parameter name.")?);
+                if !self.match_(&[COMMA]) {
+                    break;
+                }
+            }
+        }
+        self.consume(RIGHT_PAREN, "Expect ')' after parameters.")?;
+        self.consume(
+            LEFT_BRACE,
+            &format!("Expect '{}'  before {} body.", '{', kind),
+        )?;
+        let body = self.block()?;
+        Ok(Stmt::function(name, parameters, body))
     }
 
     /// forStmt → "for" "(" ( varDecl | exprStmt | ";" )
@@ -257,18 +283,45 @@ impl Parser {
             let right = self.unary()?;
             return Ok(Expr::unary(operator, right));
         }
-        return self.primary();
+        return self.call();
     }
 
     /// call → primary ( "(" arguments? ")" )* ;
     fn call(&mut self) -> Result<Expr, ParseError> {
-        todo!()
+        let mut expr = self.primary()?;
+        loop {
+            if self.match_(&[LEFT_PAREN]) {
+                expr = self.finish_call(expr)?;
+            } else {
+                break;
+            }
+        }
+        Ok(expr)
+    }
+
+    fn finish_call(&mut self, callee: Expr) -> Result<Expr, ParseError> {
+        let mut arguments = vec![];
+        if !self.check(RIGHT_PAREN) {
+            loop {
+                if arguments.len() >= 255 {
+                    self.error(self.peek().clone(), "Can't have more than 255 arguments.");
+                }
+                arguments.push(self.expression()?);
+                if !self.match_(&[COMMA]) {
+                    break;
+                }
+            }
+        }
+
+        let paren = self.consume(RIGHT_PAREN, "Expect ')' after arguments.")?;
+        Ok(Expr::call(callee, paren, arguments))
     }
 
     /// arguments → expression ( "," expression )* ;
     fn arguments(&mut self) -> Result<Expr, ParseError> {
         todo!()
     }
+
     /// To access a variable, we define a new kind of primary expressio
     ///
     /// primary → "true" | "false" | "nil"
@@ -300,6 +353,7 @@ impl Parser {
         }
     }
 
+    ///
     fn consume(&mut self, token_type: TokenType, msg: &str) -> Result<Token, ParseError> {
         if self.check(token_type) {
             return Ok(self.advance().clone()); // TODO
@@ -307,6 +361,7 @@ impl Parser {
             Err(self.error(self.peek().clone(), msg))
         }
     }
+
     fn error(&self, token: Token, msg: &str) -> ParseError {
         Lox::error_(&token, msg);
         ParseError::new(token, msg.into())
@@ -327,6 +382,7 @@ impl Parser {
         }
     }
 
+    /// check whether current token is token_type
     fn check(&self, token_type: TokenType) -> bool {
         if self.is_at_end() {
             return false;
@@ -346,9 +402,12 @@ impl Parser {
         return false;
     }
 
+    /// get prev token
     fn previous(&self) -> &Token {
         self.tokens.get(self.current - 1).unwrap() // TODO
     }
+
+    /// get current token and advance current index
     fn advance(&mut self) -> &Token {
         if !self.is_at_end() {
             self.current += 1;

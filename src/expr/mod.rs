@@ -1,5 +1,5 @@
 use crate::error::ParseError;
-use crate::expr::Expr::{Assign, Binary, Grouping, Literal, Logical, Unary, Variable};
+use crate::expr::Expr::{Assign, Binary, Call, Grouping, Literal, Logical, Unary, Variable};
 use crate::object::Object;
 use crate::token::Token;
 use std::fmt::{Debug, Display};
@@ -7,6 +7,7 @@ use std::fmt::{Debug, Display};
 pub mod assign;
 pub mod ast_printer;
 pub mod binary;
+pub mod call;
 pub mod grouping;
 pub mod literal;
 pub mod logical;
@@ -22,6 +23,7 @@ pub enum Expr {
     Literal(Box<literal::Literal>),
     Unary(Box<unary::Unary>),
     Variable(variable::Variable),
+    Call(Box<call::Call>),
 }
 
 impl Expr {
@@ -50,6 +52,15 @@ impl Expr {
             right,
         }))
     }
+
+    pub fn call(callee: Expr, paren: Token, arguments: Vec<Expr>) -> Self {
+        Call(Box::new(call::Call {
+            callee,
+            paren,
+            arguments,
+        }))
+    }
+
     pub fn accept<V: Visitor>(&self, visitor: &mut V) -> Result<Option<Object>, ParseError> {
         match self {
             Binary(v) => visitor.visit_binary_expr((**v).clone()),
@@ -59,6 +70,7 @@ impl Expr {
             Assign(v) => visitor.visit_assign_expr(*v.clone()),
             Variable(v) => visitor.visit_variable_expr(v.clone()),
             Logical(v) => visitor.visit_logical_expr(*v.clone()),
+            Call(v) => visitor.visit_call_expr(*v.clone()),
         }
     }
 }
@@ -96,4 +108,7 @@ pub(crate) trait Visitor {
 
     /// evalue logical expression
     fn visit_logical_expr(&mut self, expr: logical::Logical) -> Result<Option<Object>, ParseError>;
+
+    /// execute function
+    fn visit_call_expr(&mut self, expr: call::Call) -> Result<Option<Object>, ParseError>;
 }

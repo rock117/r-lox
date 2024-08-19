@@ -9,6 +9,7 @@ pub(crate) enum Object {
     Number(f64),
     Boolean(bool),
     Void,
+    Function(Box<crate::function::LoxCallable>),
 }
 
 impl Object {
@@ -38,6 +39,8 @@ fn to_string(object: &Object) -> String {
         Number(v) => format!("{}", v),
         Boolean(v) => format!("{}", v),
         Object::Void => "".into(),
+
+        Object::Function(f) => f.to_string(),
     }
 }
 impl Debug for Object {
