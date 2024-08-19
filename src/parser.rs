@@ -1,4 +1,4 @@
-use crate::error::ParseError;
+use crate::error::{LoxError, ParseError};
 use crate::expr::Expr;
 use crate::expr::Expr::Logical;
 use crate::lox::Lox;
@@ -19,7 +19,7 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    pub(crate) fn parse(&mut self) -> Result<Vec<Stmt>, ParseError> {
+    pub(crate) fn parse(&mut self) -> Result<Vec<Stmt>, LoxError> {
         let mut statements = vec![];
         while !self.is_at_end() {
             if let Some(dec) = self.declaration() {
@@ -29,7 +29,7 @@ impl Parser {
         return Ok(statements);
     }
     /// grammar expression → assignment;
-    fn expression(&mut self) -> Result<Expr, ParseError> {
+    fn expression(&mut self) -> Result<Expr, LoxError> {
         self.assignment()
     }
 
@@ -58,7 +58,7 @@ impl Parser {
     ///  | returnStmt
     ///  | whileStmt
     ///  | block ;
-    fn statement(&mut self) -> Result<Stmt, ParseError> {
+    fn statement(&mut self) -> Result<Stmt, LoxError> {
         if self.match_(&[FOR]) {
             return self.for_statement();
         }
@@ -80,7 +80,7 @@ impl Parser {
         return self.expression_statement();
     }
 
-    fn if_statement(&mut self) -> Result<Stmt, ParseError> {
+    fn if_statement(&mut self) -> Result<Stmt, LoxError> {
         self.consume(LEFT_PAREN, "Expect '(' after 'if'.")?;
         let condition = self.expression()?;
         self.consume(RIGHT_PAREN, "Expect ')' after if condition.")?;
@@ -94,14 +94,14 @@ impl Parser {
     }
 
     /// printStmt → "print" expression ";" ;
-    fn print_statement(&mut self) -> Result<Stmt, ParseError> {
+    fn print_statement(&mut self) -> Result<Stmt, LoxError> {
         let value = self.expression()?;
         self.consume(SEMICOLON, "Expect ';' after value.")?;
         Ok(Stmt::print(value))
     }
 
     /// returnStmt → "return" expression? ";" ;
-    fn return_statement(&mut self) -> Result<Stmt, ParseError> {
+    fn return_statement(&mut self) -> Result<Stmt, LoxError> {
         let keyword = self.previous().clone();
         let value = if !self.check(SEMICOLON) {
             Some(self.expression()?)
@@ -110,12 +110,12 @@ impl Parser {
         };
         self.consume(SEMICOLON, "Expect ';' after return value.")?;
         let Some(value) = value else {
-            return Err(ParseError::new(keyword, "Unknown error when parse return_statement".into()));
+            return Err(LoxError::new_parse_error(keyword, "Unknown error when parse return_statement".into()));
         };
         Ok(Stmt::r#return(keyword, value))
     }
     /// whileStmt → "while" "(" expression ")" statement ;
-    fn while_statement(&mut self) -> Result<Stmt, ParseError> {
+    fn while_statement(&mut self) -> Result<Stmt, LoxError> {
         self.consume(LEFT_PAREN, "Expect '(' after 'while'.")?;
         let condition = self.expression()?;
         self.consume(RIGHT_PAREN, "Expect ')' after condition.")?;
@@ -124,7 +124,7 @@ impl Parser {
     }
 
     /// varDecl → "var" IDENTIFIER ( "=" expression )? ";"
-    fn var_declaration(&mut self) -> Result<Stmt, ParseError> {
+    fn var_declaration(&mut self) -> Result<Stmt, LoxError> {
         let name = self.consume(IDENTIFIER, "Expect variable name.")?; // var had been match by its caller
         let initializer: Option<Expr> = if self.match_(&[EQUAL]) {
             Some(self.expression()?)
@@ -136,13 +136,13 @@ impl Parser {
     }
 
     /// exprStmt → expression ";"
-    fn expression_statement(&mut self) -> Result<Stmt, ParseError> {
+    fn expression_statement(&mut self) -> Result<Stmt, LoxError> {
         let expr = self.expression()?;
         self.consume(SEMICOLON, "Expect ';' after expression.")?;
         Ok(Stmt::expression(expr))
     }
 
-    fn function(&mut self, kind: &str) -> Result<Stmt, ParseError> {
+    fn function(&mut self, kind: &str) -> Result<Stmt, LoxError> {
         let name = self.consume(IDENTIFIER, &format!("Expect {} name.", kind))?;
         self.consume(LEFT_PAREN, &format!("Expect '(' after {} name.", kind))?;
         let mut parameters = vec![];
@@ -169,7 +169,7 @@ impl Parser {
     /// forStmt → "for" "(" ( varDecl | exprStmt | ";" )
     ///  expression? ";"
     ///  expression? ")" statement ;
-    fn for_statement(&mut self) -> Result<Stmt, ParseError> {
+    fn for_statement(&mut self) -> Result<Stmt, LoxError> {
         self.consume(LEFT_PAREN, "Expect '(' after 'for'.")?;
 
         let initializer = if self.match_(&[SEMICOLON]) {
@@ -209,7 +209,7 @@ impl Parser {
         Ok(body)
     }
 
-    fn block(&mut self) -> Result<Vec<Stmt>, ParseError> {
+    fn block(&mut self) -> Result<Vec<Stmt>, LoxError> {
         let mut statements = vec![];
         while !self.check(RIGHT_BRACE) && !self.is_at_end() {
             if let Some(decl) = self.declaration() {
@@ -221,7 +221,7 @@ impl Parser {
     }
 
     /// assignment → IDENTIFIER "=" assignment | logic_or
-    fn assignment(&mut self) -> Result<Expr, ParseError> {
+    fn assignment(&mut self) -> Result<Expr, LoxError> {
         let expr = self.or()?;
         if self.match_(&[EQUAL]) {
             let equals = self.previous().clone();
@@ -237,7 +237,7 @@ impl Parser {
     }
 
     /// logic_or → logic_and ( "or" logic_and )* ;
-    fn or(&mut self) -> Result<Expr, ParseError> {
+    fn or(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.and()?;
         while self.match_(&[OR]) {
             let operator = self.previous().clone();
@@ -248,7 +248,7 @@ impl Parser {
     }
 
     /// logic_and → equality ( "and" equality )* ;
-    fn and(&mut self) -> Result<Expr, ParseError> {
+    fn and(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.equality()?;
         while self.match_(&[AND]) {
             let operator = self.previous().clone();
@@ -259,7 +259,7 @@ impl Parser {
     }
 
     /// equality → comparison ( ( "!=" | "==" ) comparison )* ;
-    fn equality(&mut self) -> Result<Expr, ParseError> {
+    fn equality(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.comparison();
         while self.match_(&[BANG_EQUAL, EQUAL_EQUAL]) {
             let operator = self.previous().clone();
@@ -269,7 +269,7 @@ impl Parser {
         return expr;
     }
 
-    fn comparison(&mut self) -> Result<Expr, ParseError> {
+    fn comparison(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.term();
         while self.match_(&[GREATER, GREATER_EQUAL, LESS, LESS_EQUAL]) {
             let operator = self.previous().clone();
@@ -279,7 +279,7 @@ impl Parser {
         return expr;
     }
 
-    fn term(&mut self) -> Result<Expr, ParseError> {
+    fn term(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.factor();
         while self.match_(&[MINUS, PLUS]) {
             let operator = self.previous().clone();
@@ -289,7 +289,7 @@ impl Parser {
         return expr;
     }
 
-    fn factor(&mut self) -> Result<Expr, ParseError> {
+    fn factor(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.unary();
         while self.match_(&[SLASH, STAR]) {
             let operator = self.previous().clone();
@@ -300,7 +300,7 @@ impl Parser {
     }
 
     /// unary → ( "!" | "-" ) unary | call ;
-    fn unary(&mut self) -> Result<Expr, ParseError> {
+    fn unary(&mut self) -> Result<Expr, LoxError> {
         if self.match_(&[BANG, MINUS]) {
             let operator = self.previous().clone(); // TODO
             let right = self.unary()?;
@@ -310,7 +310,7 @@ impl Parser {
     }
 
     /// call → primary ( "(" arguments? ")" )* ;
-    fn call(&mut self) -> Result<Expr, ParseError> {
+    fn call(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.primary()?;
         loop {
             if self.match_(&[LEFT_PAREN]) {
@@ -322,7 +322,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn finish_call(&mut self, callee: Expr) -> Result<Expr, ParseError> {
+    fn finish_call(&mut self, callee: Expr) -> Result<Expr, LoxError> {
         let mut arguments = vec![];
         if !self.check(RIGHT_PAREN) {
             loop {
@@ -341,7 +341,7 @@ impl Parser {
     }
 
     /// arguments → expression ( "," expression )* ;
-    fn arguments(&mut self) -> Result<Expr, ParseError> {
+    fn arguments(&mut self) -> Result<Expr, LoxError> {
         todo!()
     }
 
@@ -351,7 +351,7 @@ impl Parser {
     /// | NUMBER | STRING
     /// | "(" expression ")"
     /// | IDENTIFIER ;
-    fn primary(&mut self) -> Result<Expr, ParseError> {
+    fn primary(&mut self) -> Result<Expr, LoxError> {
         if self.match_(&[FALSE]) {
             return Ok(Expr::literal(Some(Object::Boolean(false))));
         }
@@ -377,7 +377,7 @@ impl Parser {
     }
 
     ///
-    fn consume(&mut self, token_type: TokenType, msg: &str) -> Result<Token, ParseError> {
+    fn consume(&mut self, token_type: TokenType, msg: &str) -> Result<Token, LoxError> {
         if self.check(token_type) {
             return Ok(self.advance().clone()); // TODO
         } else {
@@ -385,9 +385,9 @@ impl Parser {
         }
     }
 
-    fn error(&self, token: Token, msg: &str) -> ParseError {
+    fn error(&self, token: Token, msg: &str) -> LoxError {
         Lox::error_(&token, msg);
-        ParseError::new(token, msg.into())
+        LoxError::new_parse_error(token, msg.into())
     }
 
     /// discards tokens until found a statement boundary

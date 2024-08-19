@@ -14,11 +14,11 @@ pub(crate) struct AstPrinter;
 //         AstPrinter
 //     }
 //
-//     pub(crate) fn print(&self, expr: &impl Expr) -> Result<Option<Object>, ParseError> {
+//     pub(crate) fn print(&self, expr: &impl Expr) -> Result<Option<Object>, LoxError> {
 //         return expr.accept(self);
 //     }
 //
-//     fn parenthesize(&self, name: &str, exprs: &[&impl Expr]) ->  Result<String, ParseError> {
+//     fn parenthesize(&self, name: &str, exprs: &[&impl Expr]) ->  Result<String, LoxError> {
 //         let mut strs = String::new();
 //         strs.push_str("(");
 //         strs.push_str(name);

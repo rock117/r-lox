@@ -3,7 +3,7 @@ use std::fmt::Display;
 use std::rc::Rc;
 
 use crate::environment::Environment;
-use crate::error::{ParseError, Return};
+use crate::error::{LoxError, ParseError, Return};
 use crate::expr::binary::Binary;
 use crate::expr::call::Call;
 use crate::expr::grouping::Grouping;
@@ -52,11 +52,11 @@ impl Interpreter {
         }
     }
 
-    fn evaluate(&mut self, expr: &Expr) -> Result<Option<Object>, ParseError> {
+    fn evaluate(&mut self, expr: &Expr) -> Result<Option<Object>, LoxError> {
         return expr.accept(self);
     }
 
-    fn execute(&mut self, stmt: &Stmt) -> Result<Option<Object>, ParseError> {
+    fn execute(&mut self, stmt: &Stmt) -> Result<Option<Object>, LoxError> {
         stmt.accept(self)
     }
 
@@ -100,7 +100,7 @@ impl Interpreter {
         &mut self,
         statements: Vec<Stmt>,
         environment: Environment,
-    ) -> Result<(), ParseError> {
+    ) -> Result<(), LoxError> {
         let previous = self.environment.clone();
         self.environment = Rc::new(RefCell::new(environment));
         for stmt in statements {
@@ -115,15 +115,15 @@ impl Interpreter {
 }
 
 impl expr::Visitor for Interpreter {
-    fn visit_literal_expr(&self, expr: Literal) -> Result<Option<Object>, ParseError> {
+    fn visit_literal_expr(&self, expr: Literal) -> Result<Option<Object>, LoxError> {
         Ok(expr.value)
     }
 
-    fn visit_grouping_expr(&mut self, expr: Grouping) -> Result<Option<Object>, ParseError> {
+    fn visit_grouping_expr(&mut self, expr: Grouping) -> Result<Option<Object>, LoxError> {
         return self.evaluate(&expr.expression);
     }
 
-    fn visit_unary_expr(&mut self, expr: Unary) -> Result<Option<Object>, ParseError> {
+    fn visit_unary_expr(&mut self, expr: Unary) -> Result<Option<Object>, LoxError> {
         let right = self.evaluate(&expr.right)?;
         match (expr.operator.r#type, right) {
             (TokenType::MINUS, Some(Object::Number(v))) => Ok(Some(Object::Number(-v))),
@@ -132,18 +132,18 @@ impl expr::Visitor for Interpreter {
         }
     }
 
-    fn visit_binary_expr(&mut self, expr: Binary) -> Result<Option<Object>, ParseError> {
+    fn visit_binary_expr(&mut self, expr: Binary) -> Result<Option<Object>, LoxError> {
         let left = self.evaluate(&expr.left)?;
         let right = self.evaluate(&expr.right)?;
 
         match (expr.operator.r#type, left, right) {
             (TokenType::SLASH, Some(Object::Number(left)), Some(Object::Number(0f64))) => Err(
-                ParseError::new(expr.operator, "Arithmetic Error: / by zero".into()),
+                LoxError::new_parse_error(expr.operator, "Arithmetic Error: / by zero".into()),
             ),
             (TokenType::SLASH, Some(Object::Number(left)), Some(Object::Number(right))) => {
                 Ok(Some(Object::Number(left / right)))
             }
-            (TokenType::SLASH, _, _) => Err(ParseError::new(
+            (TokenType::SLASH, _, _) => Err(LoxError::new_parse_error(
                 expr.operator,
                 "Operands must be numbers.".into(),
             )),
@@ -151,7 +151,7 @@ impl expr::Visitor for Interpreter {
             (TokenType::STAR, Some(Object::Number(left)), Some(Object::Number(right))) => {
                 Ok(Some(Object::Number(left * right)))
             }
-            (TokenType::STAR, _, _) => Err(ParseError::new(
+            (TokenType::STAR, _, _) => Err(LoxError::new_parse_error(
                 expr.operator,
                 "Operands must be numbers.".into(),
             )),
@@ -159,7 +159,7 @@ impl expr::Visitor for Interpreter {
             (TokenType::MINUS, Some(Object::Number(left)), Some(Object::Number(right))) => {
                 Ok(Some(Object::Number(left - right)))
             }
-            (TokenType::MINUS, _, _) => Err(ParseError::new(
+            (TokenType::MINUS, _, _) => Err(LoxError::new_parse_error(
                 expr.operator,
                 "Operands must be numbers.".into(),
             )),
@@ -176,7 +176,7 @@ impl expr::Visitor for Interpreter {
             (TokenType::PLUS, Some(Object::Str(left)), Some(Object::Number(right))) => {
                 Ok(Some(Object::Str(format!("{}{}", left, right))))
             }
-            (TokenType::PLUS, _, _) => Err(ParseError::new(
+            (TokenType::PLUS, _, _) => Err(LoxError::new_parse_error(
                 expr.operator,
                 "Operands must be two numbers/strings.".into(),
             )),
@@ -184,7 +184,7 @@ impl expr::Visitor for Interpreter {
             (TokenType::GREATER, Some(Object::Number(left)), Some(Object::Number(right))) => {
                 Ok(Some(Object::Boolean(left > right)))
             }
-            (TokenType::GREATER, _, _) => Err(ParseError::new(
+            (TokenType::GREATER, _, _) => Err(LoxError::new_parse_error(
                 expr.operator,
                 "Operands must be numbers.".into(),
             )),
@@ -192,7 +192,7 @@ impl expr::Visitor for Interpreter {
             (TokenType::GREATER_EQUAL, Some(Object::Number(left)), Some(Object::Number(right))) => {
                 Ok(Some(Object::Boolean(left >= right)))
             }
-            (TokenType::GREATER_EQUAL, _, _) => Err(ParseError::new(
+            (TokenType::GREATER_EQUAL, _, _) => Err(LoxError::new_parse_error(
                 expr.operator,
                 "Operands must be numbers.".into(),
             )),
@@ -200,7 +200,7 @@ impl expr::Visitor for Interpreter {
             (TokenType::LESS, Some(Object::Number(left)), Some(Object::Number(right))) => {
                 Ok(Some(Object::Boolean(left < right)))
             }
-            (TokenType::LESS, _, _) => Err(ParseError::new(
+            (TokenType::LESS, _, _) => Err(LoxError::new_parse_error(
                 expr.operator,
                 "Operands must be numbers.".into(),
             )),
@@ -208,22 +208,22 @@ impl expr::Visitor for Interpreter {
             (TokenType::LESS_EQUAL, Some(Object::Number(left)), Some(Object::Number(right))) => {
                 Ok(Some(Object::Boolean(left <= right)))
             }
-            (TokenType::LESS_EQUAL, _, _) => Err(ParseError::new(
+            (TokenType::LESS_EQUAL, _, _) => Err(LoxError::new_parse_error(
                 expr.operator,
                 "Operands must be numbers.".into(),
             )),
 
             (TokenType::BANG_EQUAL, a, b) => Ok(Some(Object::Boolean(!self.is_equal(&a, &b)))),
             (TokenType::EQUAL_EQUAL, a, b) => Ok(Some(Object::Boolean(self.is_equal(&a, &b)))),
-            _ => Err(ParseError::new(expr.operator, "Unknown error.".into())), // Unreachable.
+            _ => Err(LoxError::new_parse_error(expr.operator, "Unknown error.".into())), // Unreachable.
         }
     }
 
-    fn visit_variable_expr(&self, expr: variable::Variable) -> Result<Option<Object>, ParseError> {
+    fn visit_variable_expr(&self, expr: variable::Variable) -> Result<Option<Object>, LoxError> {
         self.environment.borrow().get(&expr.name)
     }
 
-    fn visit_assign_expr(&mut self, expr: assign::Assign) -> Result<Option<Object>, ParseError> {
+    fn visit_assign_expr(&mut self, expr: assign::Assign) -> Result<Option<Object>, LoxError> {
         let value = self.evaluate(&expr.value)?;
         self.environment
             .borrow_mut()
@@ -231,7 +231,7 @@ impl expr::Visitor for Interpreter {
         Ok(value)
     }
 
-    fn visit_logical_expr(&mut self, expr: logical::Logical) -> Result<Option<Object>, ParseError> {
+    fn visit_logical_expr(&mut self, expr: logical::Logical) -> Result<Option<Object>, LoxError> {
         let left = self.evaluate(&expr.left)?;
         if expr.operator.r#type == TokenType::OR {
             if self.is_truthy(&left) {
@@ -245,7 +245,7 @@ impl expr::Visitor for Interpreter {
         return self.evaluate(&expr.right);
     }
 
-    fn visit_call_expr(&mut self, expr: Call) -> Result<Option<Object>, ParseError> {
+    fn visit_call_expr(&mut self, expr: Call) -> Result<Option<Object>, LoxError> {
         let callee = self.evaluate(&expr.callee)?;
         let mut arguments = vec![];
         for argument in expr.arguments {
@@ -253,21 +253,21 @@ impl expr::Visitor for Interpreter {
         }
 
         let Some(callee) = callee else {
-            return Err(ParseError::new(
+            return Err(LoxError::new_parse_error(
                 expr.paren,
                 "Can only call functions and classes.".into(),
             ));
         };
 
         let Object::Function(function) = callee else {
-            return Err(ParseError::new(
+            return Err(LoxError::new_parse_error(
                 expr.paren,
                 "Can only call functions and classes.".into(),
             ));
         };
 
         if (arguments.len() != function.arity()) {
-            return Err(ParseError::new(
+            return Err(LoxError::new_parse_error(
                 expr.paren,
                 format!(
                     "Expected {} arguments but got {}",
@@ -281,17 +281,17 @@ impl expr::Visitor for Interpreter {
 }
 
 impl stmt::Visitor for Interpreter {
-    fn visit_expression_stmt(&mut self, stmt: expression::Expression) -> Result<(), ParseError> {
+    fn visit_expression_stmt(&mut self, stmt: expression::Expression) -> Result<(), LoxError> {
         self.evaluate(&stmt.expression).map(|_| ())
     }
 
-    fn visit_print_stmt(&mut self, stmt: Print) -> Result<(), ParseError> {
+    fn visit_print_stmt(&mut self, stmt: Print) -> Result<(), LoxError> {
         let value = self.evaluate(&stmt.expression)?;
         println!("{}", self.stringify(value));
         Ok(())
     }
 
-    fn visit_var_stmt(&mut self, stmt: stmt::var::Var) -> Result<(), ParseError> {
+    fn visit_var_stmt(&mut self, stmt: stmt::var::Var) -> Result<(), LoxError> {
         let value = if let Some(initializer) = stmt.initializer {
             self.evaluate(&initializer)?
         } else {
@@ -303,14 +303,14 @@ impl stmt::Visitor for Interpreter {
         Ok(())
     }
 
-    fn visit_block_stmt(&mut self, stmt: block::Block) -> Result<(), ParseError> {
+    fn visit_block_stmt(&mut self, stmt: block::Block) -> Result<(), LoxError> {
         self.execute_block(
             stmt.statements,
             Environment::new_from_enclosing(self.environment.clone()),
         )
     }
 
-    fn visit_if_stmt(&mut self, stmt: r#if::If) -> Result<(), ParseError> {
+    fn visit_if_stmt(&mut self, stmt: r#if::If) -> Result<(), LoxError> {
         let value = self.evaluate(&stmt.condition)?;
         if self.is_truthy(&value) {
             self.execute(&stmt.thenBranch)?;
@@ -323,7 +323,7 @@ impl stmt::Visitor for Interpreter {
         Ok(())
     }
 
-    fn visit_while_stmt(&mut self, stmt: r#while::While) -> Result<(), ParseError> {
+    fn visit_while_stmt(&mut self, stmt: r#while::While) -> Result<(), LoxError> {
         let mut value = self.evaluate(&stmt.condition)?;
         while self.is_truthy(&value) {
             self.execute(&stmt.body)?; // TODO fix bug, is_truthy always true/false
@@ -332,7 +332,7 @@ impl stmt::Visitor for Interpreter {
         Ok(())
     }
 
-    fn visit_function_stmt(&mut self, stmt: Function)  -> Result<(), ParseError> {
+    fn visit_function_stmt(&mut self, stmt: Function)  -> Result<(), LoxError> {
         let name = stmt.name.lexeme.clone();
         let function = LoxFunction {declaration: stmt};
         let function = Box::new(function::LoxCallable::LoxFunction(function));
@@ -340,14 +340,14 @@ impl stmt::Visitor for Interpreter {
         Ok(())
     }
 
-    fn visit_return_stmt(&mut self, stmt: r#return::Return) -> Result<(), ParseError> {
+    fn visit_return_stmt(&mut self, stmt: r#return::Return) -> Result<(), LoxError> {
         let value = if let Some(value) = stmt.value{
             self.evaluate(&value)?
         } else {
             None
         };
         // Err(Return {value}) // TODO
-        //Err(ParseError::new(value))
+        //Err(LoxError::new_parse_error(value))
         todo!()
     }
 }

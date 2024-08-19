@@ -1,8 +1,9 @@
-use crate::error::ParseError;
+use std::fmt::{Debug, Display};
+
+use crate::error::LoxError;
 use crate::expr::Expr::{Assign, Binary, Call, Grouping, Literal, Logical, Unary, Variable};
 use crate::object::Object;
 use crate::token::Token;
-use std::fmt::{Debug, Display};
 
 pub mod assign;
 pub mod ast_printer;
@@ -61,7 +62,7 @@ impl Expr {
         }))
     }
 
-    pub fn accept<V: Visitor>(&self, visitor: &mut V) -> Result<Option<Object>, ParseError> {
+    pub fn accept<V: Visitor>(&self, visitor: &mut V) -> Result<Option<Object>, LoxError> {
         match self {
             Binary(v) => visitor.visit_binary_expr((**v).clone()),
             Grouping(v) => visitor.visit_grouping_expr((**v).clone()),
@@ -89,26 +90,26 @@ pub(crate) trait Visitor {
     // R visitUnaryExpr(Unary expr);
     // R visitVariableExpr(Variable expr);
 
-    fn visit_literal_expr(&self, expr: literal::Literal) -> Result<Option<Object>, ParseError>;
+    fn visit_literal_expr(&self, expr: literal::Literal) -> Result<Option<Object>, LoxError>;
 
     fn visit_grouping_expr(
         &mut self,
         expr: grouping::Grouping,
-    ) -> Result<Option<Object>, ParseError>;
+    ) -> Result<Option<Object>, LoxError>;
 
-    fn visit_unary_expr(&mut self, expr: unary::Unary) -> Result<Option<Object>, ParseError>;
+    fn visit_unary_expr(&mut self, expr: unary::Unary) -> Result<Option<Object>, LoxError>;
 
-    fn visit_binary_expr(&mut self, expr: binary::Binary) -> Result<Option<Object>, ParseError>;
+    fn visit_binary_expr(&mut self, expr: binary::Binary) -> Result<Option<Object>, LoxError>;
 
     /// read expr value
-    fn visit_variable_expr(&self, expr: variable::Variable) -> Result<Option<Object>, ParseError>;
+    fn visit_variable_expr(&self, expr: variable::Variable) -> Result<Option<Object>, LoxError>;
 
     /// evalue right value and assign to left var name
-    fn visit_assign_expr(&mut self, expr: assign::Assign) -> Result<Option<Object>, ParseError>;
+    fn visit_assign_expr(&mut self, expr: assign::Assign) -> Result<Option<Object>, LoxError>;
 
     /// evalue logical expression
-    fn visit_logical_expr(&mut self, expr: logical::Logical) -> Result<Option<Object>, ParseError>;
+    fn visit_logical_expr(&mut self, expr: logical::Logical) -> Result<Option<Object>, LoxError>;
 
     /// execute function
-    fn visit_call_expr(&mut self, expr: call::Call) -> Result<Option<Object>, ParseError>;
+    fn visit_call_expr(&mut self, expr: call::Call) -> Result<Option<Object>, LoxError>;
 }

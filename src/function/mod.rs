@@ -1,5 +1,5 @@
 use crate::environment::Environment;
-use crate::error::ParseError;
+use crate::error::{LoxError, ParseError};
 use crate::interpreter::Interpreter;
 use crate::object::Object;
 
@@ -17,7 +17,7 @@ impl LoxCallable {
         &self,
         interpreter: &mut Interpreter,
         arguments: Vec<Option<Object>>,
-    ) -> Result<Option<Object>, ParseError> {
+    ) -> Result<Option<Object>, LoxError> {
         match self {
             LoxCallable::LoxFunction(f) => f.call(interpreter, arguments),
             LoxCallable::NativeFunction(f) => f.call(interpreter, arguments),

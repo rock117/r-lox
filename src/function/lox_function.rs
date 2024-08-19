@@ -1,8 +1,9 @@
 use crate::environment::Environment;
-use crate::error::ParseError;
+use crate::error::LoxError;
 use crate::interpreter::Interpreter;
 use crate::object::Object;
 use crate::stmt;
+
 #[derive(Debug, Clone)]
 pub struct LoxFunction {
     pub(crate) declaration: stmt::function::Function,
@@ -13,7 +14,7 @@ impl LoxFunction {
         &self,
         interpreter: &mut Interpreter,
         arguments: Vec<Option<Object>>,
-    ) -> Result<Option<Object>, ParseError> {
+    ) -> Result<Option<Object>, LoxError> {
         let mut environment = Environment::new(); // TODO (interpreter.globals);
         for i in 0..self.declaration.params.len() {
             if let (Some(param), Some(arg)) = (self.declaration.params.get(i), arguments.get(i)) {
@@ -21,11 +22,11 @@ impl LoxFunction {
             }
         }
         let result = interpreter.execute_block(self.declaration.body.clone(), environment);
-        if let Err(returnValue) = result {
-           // return returnValue.value
-            todo!()
+        match result {
+            Ok(_) => Ok(None),
+            Err(LoxError::ReturnError(returnValue)) => Ok(returnValue.value),
+            Err(e) => Err(e)
         }
-        Ok(None)
     }
 
     pub fn arity(&self) -> usize {

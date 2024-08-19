@@ -1,5 +1,5 @@
 use crate::environment::Environment;
-use crate::error::ParseError;
+use crate::error::{LoxError, ParseError};
 use crate::interpreter::Interpreter;
 use crate::object::Object;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -20,7 +20,7 @@ impl NativeFunction {
         &self,
         interpreter: &mut Interpreter,
         arguments: Vec<Option<Object>>,
-    ) -> Result<Option<Object>, ParseError> {
+    ) -> Result<Option<Object>, LoxError> {
         match self {
             NativeFunction::Clock(clock) => clock.call(interpreter, arguments),
         }
@@ -44,7 +44,7 @@ impl Clock {
         &self,
         interpreter: &mut Interpreter,
         arguments: Vec<Option<Object>>,
-    ) -> Result<Option<Object>, ParseError> {
+    ) -> Result<Option<Object>, LoxError> {
         let start = SystemTime::now();
         let since_the_epoch = start
             .duration_since(UNIX_EPOCH)

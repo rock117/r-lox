@@ -20,6 +20,12 @@ pub struct Return {
     pub(crate) value: Option<Object>
 }
 
+impl LoxError {
+    pub fn new_parse_error(token: Token, message: String) -> Self {
+        LoxError::ParseError(ParseError { token, message})
+    }
+}
+
 
 impl ParseError {
     pub fn new(token: Token, message: String) -> Self {

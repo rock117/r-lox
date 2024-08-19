@@ -7,7 +7,7 @@ pub(crate) mod var;
 pub(crate) mod r#while;
 pub(crate) mod r#return;
 
-use crate::error::ParseError;
+use crate::error::{LoxError, ParseError};
 use crate::expr::Expr;
 use crate::interpreter::Interpreter;
 use crate::object::Object;
@@ -26,7 +26,7 @@ pub(crate) enum Stmt {
 }
 
 impl Stmt {
-    pub fn accept(&self, visitor: &mut Interpreter) -> Result<Option<Object>, ParseError> {
+    pub fn accept(&self, visitor: &mut Interpreter) -> Result<Option<Object>, LoxError> {
         match self {
             Stmt::Expression(v) => visitor
                 .visit_expression_stmt(v.clone())
@@ -89,25 +89,25 @@ impl Stmt {
 
 pub(crate) trait Visitor {
     /// execute expression, ignore result
-    fn visit_expression_stmt(&mut self, stmt: expression::Expression) -> Result<(), ParseError>;
+    fn visit_expression_stmt(&mut self, stmt: expression::Expression) -> Result<(), LoxError>;
 
     /// print statement
-    fn visit_print_stmt(&mut self, stmt: print::Print) -> Result<(), ParseError>;
+    fn visit_print_stmt(&mut self, stmt: print::Print) -> Result<(), LoxError>;
 
     /// define var
-    fn visit_var_stmt(&mut self, stmt: var::Var) -> Result<(), ParseError>;
+    fn visit_var_stmt(&mut self, stmt: var::Var) -> Result<(), LoxError>;
 
     /// execute block
-    fn visit_block_stmt(&mut self, stmt: block::Block) -> Result<(), ParseError>;
+    fn visit_block_stmt(&mut self, stmt: block::Block) -> Result<(), LoxError>;
 
     /// execute if statement
-    fn visit_if_stmt(&mut self, stmt: r#if::If) -> Result<(), ParseError>;
+    fn visit_if_stmt(&mut self, stmt: r#if::If) -> Result<(), LoxError>;
 
     /// execute while statement
-    fn visit_while_stmt(&mut self, stmt: r#while::While) -> Result<(), ParseError>;
+    fn visit_while_stmt(&mut self, stmt: r#while::While) -> Result<(), LoxError>;
 
     /// define function
-    fn visit_function_stmt(&mut self, stmt: function::Function)  -> Result<(), ParseError>;
+    fn visit_function_stmt(&mut self, stmt: function::Function)  -> Result<(), LoxError>;
 
-    fn visit_return_stmt(&mut self, stmt: r#return::Return)  -> Result<(), ParseError>;
+    fn visit_return_stmt(&mut self, stmt: r#return::Return)  -> Result<(), LoxError>;
 }

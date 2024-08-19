@@ -1,9 +1,10 @@
-use crate::error::ParseError;
-use crate::object::Object;
-use crate::token::Token;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+
+use crate::error::{LoxError, ParseError};
+use crate::object::Object;
+use crate::token::Token;
 
 #[derive(Clone)]
 pub(crate) struct Environment {
@@ -28,7 +29,7 @@ impl Environment {
         }
     }
 
-    pub fn get(&self, name: &Token) -> Result<Option<Object>, ParseError> {
+    pub fn get(&self, name: &Token) -> Result<Option<Object>, LoxError> {
         let value = self.values.get(&name.lexeme);
         match value {
             Some(v) => Ok(v.clone()),
@@ -37,7 +38,7 @@ impl Environment {
                     return Ok(enclosing.borrow_mut().get(name)?.clone());
                 }
 
-                Err(ParseError::new(
+                Err(LoxError::new_parse_error(
                     name.clone(),
                     format!("Undefined variable '{}'.", name.lexeme),
                 ))
@@ -49,7 +50,7 @@ impl Environment {
         self.values.insert(name, value);
     }
 
-    pub fn assign(&mut self, name: &Token, value: Option<Object>) -> Result<(), ParseError> {
+    pub fn assign(&mut self, name: &Token, value: Option<Object>) -> Result<(), LoxError> {
         if (self.values.contains_key(&name.lexeme)) {
             self.values.insert(name.lexeme.clone(), value);
             return Ok(());
@@ -59,7 +60,7 @@ impl Environment {
             return enclosing.borrow_mut().assign(name, value);
         }
 
-        return Err(ParseError::new(
+        return Err(LoxError::new_parse_error(
             name.clone(),
             format!("Undefined variable '{}'.", name.lexeme),
         ));
