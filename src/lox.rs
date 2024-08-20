@@ -78,7 +78,7 @@ impl Lox {
     pub(crate) fn runtime_error(error: LoxError) {
         //eprintln!(error.getMessage() + "\n[line " + error.token.line + "]"); TODO
 
-      //   eprintln!("{}\n[line {} ]", error.message, error.token.line);
+        //   eprintln!("{}\n[line {} ]", error.message, error.token.line);
         HAD_RUNTIME_ERROR.store(true, Ordering::SeqCst);
     }
 }

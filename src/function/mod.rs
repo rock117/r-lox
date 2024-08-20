@@ -12,7 +12,6 @@ pub enum LoxCallable {
 }
 
 impl LoxCallable {
-
     pub fn call(
         &self,
         interpreter: &mut Interpreter,

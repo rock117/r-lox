@@ -69,7 +69,7 @@ impl Parser {
             return self.print_statement();
         }
         if self.match_(&[RETURN]) {
-            return self.return_statement()
+            return self.return_statement();
         }
         if self.match_(&[WHILE]) {
             return self.while_statement();
@@ -110,7 +110,10 @@ impl Parser {
         };
         self.consume(SEMICOLON, "Expect ';' after return value.")?;
         let Some(value) = value else {
-            return Err(LoxError::new_parse_error(keyword, "Unknown error when parse return_statement".into()));
+            return Err(LoxError::new_parse_error(
+                keyword,
+                "Unknown error when parse return_statement".into(),
+            ));
         };
         Ok(Stmt::r#return(keyword, value))
     }

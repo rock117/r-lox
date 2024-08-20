@@ -1,12 +1,12 @@
+use crate::object::Object;
 use crate::token::Token;
 use std::fmt::{Display, Formatter};
 use thiserror::Error;
-use crate::object::Object;
 
 #[derive(Debug, Error)]
 pub enum LoxError {
     ParseError(ParseError),
-    ReturnError(Return)
+    ReturnError(Return),
 }
 
 #[derive(Debug, Error)]
@@ -17,15 +17,14 @@ pub(crate) struct ParseError {
 
 #[derive(Debug, Error)]
 pub struct Return {
-    pub(crate) value: Option<Object>
+    pub(crate) value: Option<Object>,
 }
 
 impl LoxError {
     pub fn new_parse_error(token: Token, message: String) -> Self {
-        LoxError::ParseError(ParseError { token, message})
+        LoxError::ParseError(ParseError { token, message })
     }
 }
-
 
 impl ParseError {
     pub fn new(token: Token, message: String) -> Self {
@@ -49,7 +48,7 @@ impl Display for LoxError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             LoxError::ParseError(e) => e.fmt(f),
-            LoxError::ReturnError(e) =>  e.fmt(f)
+            LoxError::ReturnError(e) => e.fmt(f),
         }
     }
 }

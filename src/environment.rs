@@ -6,7 +6,7 @@ use crate::error::{LoxError, ParseError};
 use crate::object::Object;
 use crate::token::Token;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Environment {
     /// parent scope's env
     enclosing: Option<Rc<RefCell<Environment>>>,

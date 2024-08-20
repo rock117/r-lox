@@ -92,10 +92,8 @@ pub(crate) trait Visitor {
 
     fn visit_literal_expr(&self, expr: literal::Literal) -> Result<Option<Object>, LoxError>;
 
-    fn visit_grouping_expr(
-        &mut self,
-        expr: grouping::Grouping,
-    ) -> Result<Option<Object>, LoxError>;
+    fn visit_grouping_expr(&mut self, expr: grouping::Grouping)
+        -> Result<Option<Object>, LoxError>;
 
     fn visit_unary_expr(&mut self, expr: unary::Unary) -> Result<Option<Object>, LoxError>;
 

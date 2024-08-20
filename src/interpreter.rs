@@ -11,15 +11,15 @@ use crate::expr::literal::Literal;
 use crate::expr::unary::Unary;
 use crate::expr::{assign, logical, variable, Expr};
 use crate::function;
+use crate::function::lox_function::LoxFunction;
 use crate::function::native_function::NativeFunction;
 use crate::lox::Lox;
 use crate::object::Object;
+use crate::stmt::function::Function;
 use crate::stmt::print::Print;
 use crate::stmt::{block, expression, r#if, r#return, r#while, Stmt};
 use crate::token::token_type::TokenType;
 use crate::{expr, stmt};
-use crate::function::lox_function::LoxFunction;
-use crate::stmt::function::Function;
 
 pub(crate) struct Interpreter {
     globals: Rc<RefCell<Environment>>,
@@ -215,7 +215,10 @@ impl expr::Visitor for Interpreter {
 
             (TokenType::BANG_EQUAL, a, b) => Ok(Some(Object::Boolean(!self.is_equal(&a, &b)))),
             (TokenType::EQUAL_EQUAL, a, b) => Ok(Some(Object::Boolean(self.is_equal(&a, &b)))),
-            _ => Err(LoxError::new_parse_error(expr.operator, "Unknown error.".into())), // Unreachable.
+            _ => Err(LoxError::new_parse_error(
+                expr.operator,
+                "Unknown error.".into(),
+            )), // Unreachable.
         }
     }
 
@@ -332,23 +335,27 @@ impl stmt::Visitor for Interpreter {
         Ok(())
     }
 
-    fn visit_function_stmt(&mut self, stmt: Function)  -> Result<(), LoxError> {
+    fn visit_function_stmt(&mut self, stmt: Function) -> Result<(), LoxError> {
+        let environment = self.environment.clone();
         let name = stmt.name.lexeme.clone();
-        let function = LoxFunction {declaration: stmt};
+        let function = LoxFunction {
+            declaration: stmt,
+            closure: environment,
+        };
         let function = Box::new(function::LoxCallable::LoxFunction(function));
-        self.environment.borrow_mut().define(name, Some(Object::Function(function)));
+        self.environment
+            .borrow_mut()
+            .define(name, Some(Object::Function(function)));
         Ok(())
     }
 
     fn visit_return_stmt(&mut self, stmt: r#return::Return) -> Result<(), LoxError> {
-        let value = if let Some(value) = stmt.value{
+        let value = if let Some(value) = stmt.value {
             self.evaluate(&value)?
         } else {
             None
         };
-        // Err(Return {value}) // TODO
-        //Err(LoxError::new_parse_error(value))
-        todo!()
+        Err(LoxError::ReturnError(Return { value }))
     }
 }
 
