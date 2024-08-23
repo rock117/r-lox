@@ -10,16 +10,15 @@ use crate::expr::grouping::Grouping;
 use crate::expr::literal::Literal;
 use crate::expr::unary::Unary;
 use crate::expr::{assign, logical, variable, Expr};
-use crate::function;
-use crate::function::lox_function::LoxFunction;
-use crate::function::native_function::NativeFunction;
 use crate::lox::Lox;
 use crate::object::Object;
 use crate::stmt::function::Function;
 use crate::stmt::print::Print;
 use crate::stmt::{block, expression, r#if, r#return, r#while, Stmt};
 use crate::token::token_type::TokenType;
-use crate::{expr, stmt};
+use crate::{expr, function, stmt};
+use crate::function::lox_function::LoxFunction;
+use crate::function::native_function::NativeFunction;
 
 pub(crate) struct Interpreter {
     globals: Rc<RefCell<Environment>>,

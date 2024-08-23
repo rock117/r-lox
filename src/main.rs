@@ -15,6 +15,7 @@ mod parser;
 mod scanner;
 mod stmt;
 mod token;
+mod function;
 
 fn main() -> anyhow::Result<()> {
     let args = std::env::args();
