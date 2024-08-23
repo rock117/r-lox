@@ -26,7 +26,7 @@ pub(crate) enum Stmt {
 }
 
 impl Stmt {
-    pub fn accept(&self, visitor: &mut Interpreter) -> Result<Option<Object>, LoxError> {
+    pub fn accept<V: Visitor>(&self, visitor: &mut V) -> Result<Option<Object>, LoxError> {
         match self {
             Stmt::Expression(v) => visitor
                 .visit_expression_stmt(v.clone())

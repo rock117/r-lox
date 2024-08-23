@@ -5,6 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crate::error::{LoxError, ParseError};
 use crate::interpreter::Interpreter;
 use crate::parser::Parser;
+use crate::resolver::Resolver;
 use crate::scanner::Scanner;
 use crate::token::token_type::TokenType;
 use crate::token::Token;
@@ -53,8 +54,12 @@ impl Lox {
         if HAD_ERROR.load(Ordering::Relaxed) {
             return;
         }
+
         if let Ok(stmts) = stmts {
-            interpreter.interpret(&stmts);
+           // let mut resolver = Resolver::new(interpreter);
+           // resolver.resolve(&stmts);
+           // resolver.interpreter.interpret(&stmts);
+             interpreter.interpret(&stmts);
         }
     }
 
@@ -76,9 +81,11 @@ impl Lox {
     }
 
     pub(crate) fn runtime_error(error: LoxError) {
-        //eprintln!(error.getMessage() + "\n[line " + error.token.line + "]"); TODO
+        match error {
+            LoxError::ParseError(e) => eprintln!("{}\n[line {} ]", e.message, e.token.line),
+            LoxError::ReturnError(e) => eprintln!("ReturnError: {:?}", e),
+        }
 
-        //   eprintln!("{}\n[line {} ]", error.message, error.token.line);
         HAD_RUNTIME_ERROR.store(true, Ordering::SeqCst);
     }
 }

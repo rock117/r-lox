@@ -65,4 +65,24 @@ impl Environment {
             format!("Undefined variable '{}'.", name.lexeme),
         ));
     }
+
+    pub fn get_at(&self, distance: usize, name: &str) -> Option<Option<Object>> {
+        match self.ancestor(distance) {
+            None => Some(None),
+            Some(ancestor) => ancestor.borrow().values.get(name).map(|v| v.clone())
+        }
+
+    }
+
+
+
+    fn ancestor(&self, distance: usize ) -> Option<Rc<RefCell<Environment>>> {
+        let mut environment: Option<Rc<RefCell<Environment>>> = Some(Rc::new(RefCell::new(self.clone())));
+        for i in 0 .. distance {
+            if let Some(env) = environment {
+                environment = env.borrow().enclosing.clone();
+            }
+        }
+        return environment
+    }
 }
