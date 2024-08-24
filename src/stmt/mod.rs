@@ -1,4 +1,5 @@
 pub(crate) mod block;
+mod class;
 pub(crate) mod expression;
 pub mod function;
 pub mod r#if;
@@ -11,6 +12,7 @@ use crate::error::{LoxError, ParseError};
 use crate::expr::Expr;
 use crate::interpreter::Interpreter;
 use crate::object::Object;
+use crate::stmt::function::Function;
 use crate::token::Token;
 
 #[derive(Debug, Clone)]
@@ -26,6 +28,7 @@ pub(crate) enum Stmt {
     While(Box<r#while::While>),
     Function(Box<function::Function>),
     Return(r#return::Return),
+    Class(class::Class),
 }
 
 impl Stmt {
@@ -55,6 +58,7 @@ impl Stmt {
             Stmt::Return(v) => visitor
                 .visit_return_stmt(v.clone())
                 .map(|_| Some(Object::Void)),
+            Stmt::Class(_) => todo!(),
         }
     }
 
@@ -94,6 +98,10 @@ impl Stmt {
             keyword,
             value: Some(value),
         })
+    }
+
+    pub fn class(name: Token, methods: Vec<Function>) -> Self {
+        Stmt::Class(class::Class { name, methods })
     }
 }
 

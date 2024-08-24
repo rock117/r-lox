@@ -1,17 +1,16 @@
-use std::collections::HashMap;
-use std::iter::Map;
 use crate::error::LoxError;
-use crate::interpreter::Interpreter;
-use crate::{expr, stmt};
 use crate::expr::assign::Assign;
 use crate::expr::binary::Binary;
 use crate::expr::call::Call;
-use crate::expr::Expr;
 use crate::expr::grouping::Grouping;
 use crate::expr::literal::Literal;
 use crate::expr::logical::Logical;
 use crate::expr::unary::Unary;
 use crate::expr::variable::Variable;
+use crate::expr::Expr;
+use crate::function::FunctionType;
+use crate::function::FunctionType::NONE;
+use crate::interpreter::Interpreter;
 use crate::lox::Lox;
 use crate::object::Object;
 use crate::stmt::block::Block;
@@ -21,21 +20,25 @@ use crate::stmt::print::Print;
 use crate::stmt::r#if::If;
 use crate::stmt::r#return::Return;
 use crate::stmt::r#while::While;
-use crate::stmt::Stmt;
 use crate::stmt::var::Var;
+use crate::stmt::Stmt;
 use crate::token::Token;
+use crate::{expr, stmt};
+use std::collections::HashMap;
+use std::iter::Map;
 
 pub(crate) struct Resolver {
     pub interpreter: Interpreter,
     scopes: Vec<HashMap<String, bool>>,
+    current_function: FunctionType,
 }
 
 impl Resolver {
-
-    pub fn new(interpreter: Interpreter) -> Self{
+    pub fn new(interpreter: Interpreter) -> Self {
         Self {
+            current_function: NONE,
             interpreter,
-            scopes: vec![]
+            scopes: vec![],
         }
     }
 
@@ -52,7 +55,6 @@ impl Resolver {
         let _ = expr.accept(self);
     }
 
-
     fn begin_scope(&mut self) {
         self.scopes.push(HashMap::new());
     }
@@ -65,9 +67,13 @@ impl Resolver {
         if self.scopes.is_empty() {
             return;
         }
-        if let Some(scope) = self.scopes.last_mut() {
-            scope.insert(name.lexeme.clone(), false);
+        let Some(scope) = self.scopes.last_mut() else {
+            return;
+        };
+        if (scope.contains_key(&name.lexeme)) {
+            Lox::error_(name, "Already variable with this name in this scope.");
         }
+        scope.insert(name.lexeme.clone(), false);
     }
 
     fn define(&mut self, name: &Token) {
@@ -79,18 +85,21 @@ impl Resolver {
         }
     }
 
-    fn resolve_local(&mut self, expr: &Expr, name: &Token) {
+    fn resolve_local(&mut self, expr: &mut Expr, name: &Token) {
         for i in (0..self.scopes.len()).rev() {
             if let Some(scope) = self.scopes.get(i) {
                 if scope.contains_key(&name.lexeme) {
-                    self.interpreter.resolve(expr.clone(), self.scopes.len() - 1 - i);
+                    self.interpreter
+                        .resolve(expr, self.scopes.len() - 1 - i);
                     return;
                 }
             }
         }
     }
 
-    fn resolve_function(&mut self, function: &Function) {
+    fn resolve_function(&mut self, function: &Function, function_type: FunctionType) {
+        let enclosing_function = self.current_function;
+        self.current_function = function_type;
         self.begin_scope();
         for param in &function.params {
             self.declare(param);
@@ -98,6 +107,7 @@ impl Resolver {
         }
         self.resolve(&function.body);
         self.end_scope();
+        self.current_function = enclosing_function;
     }
 }
 
@@ -146,11 +156,15 @@ impl stmt::Visitor for Resolver {
     fn visit_function_stmt(&mut self, stmt: Function) -> Result<(), LoxError> {
         self.declare(&stmt.name);
         self.define(&stmt.name);
-        self.resolve_function(&stmt);
+
+        self.resolve_function(&stmt, FunctionType::FUNCTION);
         Ok(())
     }
 
     fn visit_return_stmt(&mut self, stmt: Return) -> Result<(), LoxError> {
+        if (self.current_function == NONE) {
+            Lox::error_(&stmt.keyword, "Can't return from top-level code.");
+        }
         if let Some(expr) = stmt.value {
             self.resolve_expr(&expr);
         }
@@ -184,18 +198,20 @@ impl expr::Visitor for Resolver {
         if !self.scopes.is_empty() {
             let exist = self.scopes.last().map(|last| last.get(&expr.name.lexeme));
             if let Some(Some(&false)) = exist {
-                Lox::error_(&expr.name.clone(), "Can't read local variable in its own initializer.");
+                Lox::error_(
+                    &expr.name.clone(),
+                    "Can't read local variable in its own initializer.",
+                );
             }
-
         }
-        self.resolve_local(&Expr::variable(expr.name.clone()), &expr.name);
+        self.resolve_local(&mut Expr::variable(expr.name.clone()), &expr.name);
         Ok(Some(Object::Void))
     }
 
     fn visit_assign_expr(&mut self, expr: Assign) -> Result<Option<Object>, LoxError> {
         self.resolve_expr(&expr.value);
         let name = expr.name.clone();
-        self.resolve_local(&Expr::Assign(Box::new(expr)), &name);
+        self.resolve_local(&mut Expr::Assign(Box::new(expr)), &name);
         Ok(Some(Object::Void))
     }
 

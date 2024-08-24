@@ -54,9 +54,19 @@ impl Lox {
         }
 
         if let Ok(stmts) = stmts {
-           let mut resolver = Resolver::new(interpreter);
-           resolver.resolve(&stmts);
-           resolver.interpreter.interpret(&stmts);
+            let mut resolver = Resolver::new(interpreter);
+
+            for stmt in &stmts {
+              //  println!("{:?}", stmt);
+            }
+
+            resolver.resolve(&stmts);
+
+            // Stop if there was a resolution error.
+            if HAD_ERROR.load(Ordering::Relaxed) {
+                return;
+            }
+             resolver.interpreter.interpret(&stmts);
         }
     }
 

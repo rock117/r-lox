@@ -17,10 +17,10 @@ mod interpreter;
 mod lox;
 mod object;
 mod parser;
+mod resolver;
 pub(crate) mod scanner;
 pub(crate) mod stmt;
 pub(crate) mod token;
-mod resolver;
 
 fn main() -> anyhow::Result<()> {
     let args = std::env::args();

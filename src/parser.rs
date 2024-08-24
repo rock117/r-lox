@@ -4,6 +4,7 @@ use crate::expr::Expr::Logical;
 use crate::lox::Lox;
 use crate::object::Object;
 use crate::stmt::Stmt;
+use crate::stmt::Stmt::Function;
 use crate::token::token_type::TokenType;
 use crate::token::token_type::TokenType::*;
 use crate::token::Token;
@@ -33,9 +34,11 @@ impl Parser {
         self.assignment()
     }
 
-    /// declaration → funDecl | varDecl | statement
+    /// declaration → classDecl | funDecl | varDecl | statement
     fn declaration(&mut self) -> Option<Stmt> {
-        let res = if self.match_(&[FUN]) {
+        let res = if self.match_(&[CLASS]) {
+            self.class_declaration()
+        } else if self.match_(&[FUN]) {
             self.function("function")
         } else if self.match_(&[VAR]) {
             self.var_declaration()
@@ -51,6 +54,20 @@ impl Parser {
         }
     }
 
+    /// classDecl → "class" IDENTIFIER "{" function* "}" ;
+    fn class_declaration(&mut self) -> Result<Stmt, LoxError> {
+        let name = self.consume(IDENTIFIER, "Expect class name.")?;
+        self.consume(LEFT_BRACE, "Expect '{' before class body.")?;
+        let mut methods = vec![];
+        while !self.check(RIGHT_BRACE) && !self.is_at_end() {
+            let function = self.function("method")?;
+            if let Function(function) = function {
+                methods.push(*function);
+            }
+        }
+        self.consume(RIGHT_BRACE, "Expect '}' after class body.")?;
+        Ok(Stmt::class(name, methods))
+    }
     /// statement → exprStmt
     ///  | forStmt
     ///  | ifStmt
@@ -84,13 +101,13 @@ impl Parser {
         self.consume(LEFT_PAREN, "Expect '(' after 'if'.")?;
         let condition = self.expression()?;
         self.consume(RIGHT_PAREN, "Expect ')' after if condition.")?;
-        let thenBranch = self.statement()?;
-        let elseBranch = if self.match_(&[ELSE]) {
+        let then_branch = self.statement()?;
+        let else_branch = if self.match_(&[ELSE]) {
             Some(self.statement()?)
         } else {
             None
         };
-        Ok(Stmt::r#if(condition, thenBranch, elseBranch))
+        Ok(Stmt::r#if(condition, then_branch, else_branch))
     }
 
     /// printStmt → "print" expression ";" ;

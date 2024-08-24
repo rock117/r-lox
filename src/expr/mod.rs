@@ -28,8 +28,15 @@ pub enum Expr {
 }
 
 impl Expr {
+    pub fn distance(&self) -> Option<usize> {
+        match self {
+            Variable(v) => v.distance,
+            Assign(v) => v.distance,
+            _ => None
+        }
+    }
     pub fn assign(name: Token, expr: Expr) -> Self {
-        Assign(Box::new(assign::Assign { name, value: expr }))
+        Assign(Box::new(assign::Assign { name, value: expr, distance: None }))
     }
     pub fn binary(left: Expr, operator: Token, right: Expr) -> Self {
         Binary(Box::new(binary::Binary::new(left, operator, right)))
@@ -44,7 +51,7 @@ impl Expr {
         Unary(Box::new(unary::Unary::new(operator, right)))
     }
     pub fn variable(name: Token) -> Self {
-        Variable(variable::Variable { name })
+        Variable(variable::Variable { name, distance: None })
     }
     pub fn logical(left: Expr, operator: Token, right: Expr) -> Self {
         Logical(Box::new(logical::Logical {
@@ -74,12 +81,6 @@ impl Expr {
             Call(v) => visitor.visit_call_expr(*v.clone()),
         }
     }
-
-    pub fn id(&self) -> String {
-        let address = self as *const Expr;
-        let address = format!("{:p}", address);
-        address
-    }
 }
 
 pub(crate) trait Visitor {
@@ -106,7 +107,8 @@ pub(crate) trait Visitor {
     fn visit_binary_expr(&mut self, expr: binary::Binary) -> Result<Option<Object>, LoxError>;
 
     /// read expr value
-    fn visit_variable_expr(&mut self, expr: variable::Variable) -> Result<Option<Object>, LoxError>;
+    fn visit_variable_expr(&mut self, expr: variable::Variable)
+        -> Result<Option<Object>, LoxError>;
 
     /// evalue right value and assign to left var name
     fn visit_assign_expr(&mut self, expr: assign::Assign) -> Result<Option<Object>, LoxError>;

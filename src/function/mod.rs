@@ -10,6 +10,11 @@ pub enum LoxCallable {
     LoxFunction(lox_function::LoxFunction),
     NativeFunction(native_function::NativeFunction),
 }
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum FunctionType {
+    NONE,
+    FUNCTION,
+}
 
 impl LoxCallable {
     pub fn call(
