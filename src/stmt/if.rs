@@ -4,6 +4,6 @@ use crate::stmt::Stmt;
 #[derive(Debug, Clone)]
 pub(crate) struct If {
     pub(crate) condition: Expr,
-    pub(crate) thenBranch: Stmt,
-    pub(crate) elseBranch: Option<Stmt>,
+    pub(crate) then_branch: Stmt,
+    pub(crate) else_branch: Option<Stmt>,
 }

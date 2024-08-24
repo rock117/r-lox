@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::fmt::Display;
 use std::rc::Rc;
 
@@ -12,17 +13,20 @@ use crate::expr::unary::Unary;
 use crate::expr::{assign, logical, variable, Expr};
 use crate::lox::Lox;
 use crate::object::Object;
-use crate::stmt::function::Function;
-use crate::stmt::print::Print;
-use crate::stmt::{block, expression, r#if, r#return, r#while, Stmt};
-use crate::token::token_type::TokenType;
 use crate::{expr, function, stmt};
 use crate::function::lox_function::LoxFunction;
-use crate::function::native_function::NativeFunction;
+use crate::function::LoxCallable::NativeFunction;
+use crate::function::native_function;
+use crate::stmt::{block, expression, r#if, r#return, r#while, Stmt};
+use crate::stmt::function::Function;
+use crate::stmt::print::Print;
+use crate::token::Token;
+use crate::token::token_type::TokenType;
 
 pub(crate) struct Interpreter {
     globals: Rc<RefCell<Environment>>,
     environment: Rc<RefCell<Environment>>,
+    locals: HashMap<String, usize>
 }
 
 impl Interpreter {
@@ -31,12 +35,13 @@ impl Interpreter {
         globals.borrow_mut().define(
             "clock".into(),
             Some(Object::Function(Box::new(
-                function::LoxCallable::NativeFunction(NativeFunction::clock()),
+                NativeFunction(native_function::NativeFunction::clock()),
             ))),
         );
         let environment = globals.clone();
 
         Self {
+            locals: HashMap::new(),
             globals,
             environment,
         }
@@ -110,6 +115,28 @@ impl Interpreter {
         }
         self.environment = previous;
         Ok(())
+    }
+
+    pub(crate) fn resolve(&mut self, expr: Expr, depth: usize) {
+        println!("resolve expr: {:?}, id: {:?}", expr, expr.id());
+        self.locals.insert(expr.id(), depth);
+    }
+
+    fn lookup_variable(&mut self ,name: Token , expr: &Expr ) -> Result<Option<Object>, LoxError>{
+        let v1 = expr.id();
+        let v2 = expr.clone().id();
+        println!("id1: {}, id2: {}", v1, v2);
+
+        let distance = self.locals.get(&expr.id());
+        println!("id: {}, distance: {:?}, name: {:?}, locals: {:?}", &expr.id(), distance, name, self.locals);
+        if let Some(distance) = distance {
+            match self.environment.borrow().get_at(*distance, &name.lexeme) {
+                None => Ok(None),
+                Some(v) => Ok(v.clone())
+            }
+        } else {
+            self.globals.borrow().get(&name)
+        }
     }
 }
 
@@ -221,8 +248,9 @@ impl expr::Visitor for Interpreter {
         }
     }
 
-    fn visit_variable_expr(&self, expr: variable::Variable) -> Result<Option<Object>, LoxError> {
-        self.environment.borrow().get(&expr.name)
+    fn visit_variable_expr(&mut self, expr: variable::Variable) -> Result<Option<Object>, LoxError> {
+        // self.environment.borrow().get(&expr.name)
+         self.lookup_variable(expr.name.clone(), &Expr::variable(expr.name))
     }
 
     fn visit_assign_expr(&mut self, expr: assign::Assign) -> Result<Option<Object>, LoxError> {
@@ -315,10 +343,10 @@ impl stmt::Visitor for Interpreter {
     fn visit_if_stmt(&mut self, stmt: r#if::If) -> Result<(), LoxError> {
         let value = self.evaluate(&stmt.condition)?;
         if self.is_truthy(&value) {
-            self.execute(&stmt.thenBranch)?;
+            self.execute(&stmt.then_branch)?;
             return Ok(());
         }
-        if let Some(elseBranch) = stmt.elseBranch {
+        if let Some(elseBranch) = stmt.else_branch {
             self.execute(&elseBranch)?;
             return Ok(());
         }

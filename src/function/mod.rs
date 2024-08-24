@@ -1,10 +1,10 @@
-use crate::environment::Environment;
+pub mod lox_function;
+pub mod native_function;
+
 use crate::error::{LoxError, ParseError};
 use crate::interpreter::Interpreter;
 use crate::object::Object;
 
-pub mod lox_function;
-pub mod native_function;
 #[derive(Debug, Clone)]
 pub enum LoxCallable {
     LoxFunction(lox_function::LoxFunction),

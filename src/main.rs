@@ -1,21 +1,26 @@
 use std::error::Error;
 use std::io::Read;
 
+use crate::environment::Environment;
 use anyhow::anyhow;
 
 use crate::lox::Lox;
+use crate::object::Object;
+use crate::token::token_type::TokenType;
+use crate::token::Token;
 
 mod environment;
 mod error;
 mod expr;
+mod function;
 mod interpreter;
 mod lox;
 mod object;
 mod parser;
-mod scanner;
-mod stmt;
-mod token;
-mod function;
+pub(crate) mod scanner;
+pub(crate) mod stmt;
+pub(crate) mod token;
+mod resolver;
 
 fn main() -> anyhow::Result<()> {
     let args = std::env::args();
@@ -31,7 +36,9 @@ fn main() -> anyhow::Result<()> {
                 .as_str(),
         )?;
     } else {
-        Lox::run_prompt();
+        Lox::run_file(r#"C:\rock\coding\code\my\rust\r-lox\tmp\a.lox"#);
+        // Lox::run_prompt();
     }
+
     Ok(())
 }

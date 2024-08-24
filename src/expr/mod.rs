@@ -74,6 +74,12 @@ impl Expr {
             Call(v) => visitor.visit_call_expr(*v.clone()),
         }
     }
+
+    pub fn id(&self) -> String {
+        let address = self as *const Expr;
+        let address = format!("{:p}", address);
+        address
+    }
 }
 
 pub(crate) trait Visitor {
@@ -100,7 +106,7 @@ pub(crate) trait Visitor {
     fn visit_binary_expr(&mut self, expr: binary::Binary) -> Result<Option<Object>, LoxError>;
 
     /// read expr value
-    fn visit_variable_expr(&self, expr: variable::Variable) -> Result<Option<Object>, LoxError>;
+    fn visit_variable_expr(&mut self, expr: variable::Variable) -> Result<Option<Object>, LoxError>;
 
     /// evalue right value and assign to left var name
     fn visit_assign_expr(&mut self, expr: assign::Assign) -> Result<Option<Object>, LoxError>;
