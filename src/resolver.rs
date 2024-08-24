@@ -130,9 +130,9 @@ impl stmt::Visitor for Resolver {
 
     fn visit_if_stmt(&mut self, stmt: If) -> Result<(), LoxError> {
         self.resolve_expr(&stmt.condition);
-        self.resolve_stmt(&stmt.thenBranch);
-        if let Some(elseBranch) = stmt.elseBranch {
-            self.resolve_stmt(&elseBranch);
+        self.resolve_stmt(&stmt.then_branch);
+        if let Some(else_branch) = stmt.else_branch {
+            self.resolve_stmt(&else_branch);
         }
         Ok(())
     }
@@ -180,11 +180,13 @@ impl expr::Visitor for Resolver {
     }
 
     fn visit_variable_expr(&mut self, expr: Variable) -> Result<Option<Object>, LoxError> {
+        println!("visit_variable_expr scope: {:?}", self.scopes);
         if !self.scopes.is_empty() {
-            let contain = *self.scopes.last().map(|scope| scope.get(&expr.name.lexeme)).unwrap_or(None).unwrap_or(&false);
-            if !contain {
+            let exist = self.scopes.last().map(|last| last.get(&expr.name.lexeme));
+            if let Some(Some(&false)) = exist {
                 Lox::error_(&expr.name.clone(), "Can't read local variable in its own initializer.");
             }
+
         }
         self.resolve_local(&Expr::variable(expr.name.clone()), &expr.name);
         Ok(Some(Object::Void))

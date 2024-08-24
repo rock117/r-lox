@@ -15,8 +15,6 @@ pub struct Lox;
 static HAD_ERROR: AtomicBool = AtomicBool::new(false);
 static HAD_RUNTIME_ERROR: AtomicBool = AtomicBool::new(false);
 
-// static interpreter: Lazy<Interpreter> = Lazy::new(|| Interpreter::new());
-
 impl Lox {
     pub(crate) fn run_file(path: &str) -> anyhow::Result<()> {
         let source_code = std::fs::read_to_string(path)?;
@@ -56,10 +54,9 @@ impl Lox {
         }
 
         if let Ok(stmts) = stmts {
-           // let mut resolver = Resolver::new(interpreter);
-           // resolver.resolve(&stmts);
-           // resolver.interpreter.interpret(&stmts);
-             interpreter.interpret(&stmts);
+           let mut resolver = Resolver::new(interpreter);
+           resolver.resolve(&stmts);
+           resolver.interpreter.interpret(&stmts);
         }
     }
 

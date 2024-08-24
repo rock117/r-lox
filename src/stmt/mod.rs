@@ -15,8 +15,11 @@ use crate::token::Token;
 
 #[derive(Debug, Clone)]
 pub(crate) enum Stmt {
+    /// such as a+1;
     Expression(expression::Expression),
+    /// such as print 123;
     Print(print::Print),
+    /// such as var a = 3; var b;
     Var(var::Var),
     Block(block::Block),
     If(Box<r#if::If>),
@@ -74,8 +77,8 @@ impl Stmt {
     pub fn r#if(condition: Expr, thenBranch: Stmt, elseBranch: Option<Stmt>) -> Self {
         Stmt::If(Box::new(r#if::If {
             condition,
-            thenBranch,
-            elseBranch,
+            then_branch: thenBranch,
+            else_branch: elseBranch,
         }))
     }
     pub fn r#while(condition: Expr, body: Stmt) -> Self {
