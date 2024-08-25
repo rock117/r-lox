@@ -1,6 +1,7 @@
 use crate::error::{LoxError, ParseError};
 use crate::expr::Expr;
 use crate::expr::Expr::Logical;
+use crate::expr::set::Set;
 use crate::lox::Lox;
 use crate::object::Object;
 use crate::stmt::Stmt;
@@ -240,7 +241,7 @@ impl Parser {
         Ok(statements)
     }
 
-    /// assignment → IDENTIFIER "=" assignment | logic_or
+    /// assignment  → ( call "." )? IDENTIFIER "=" assignment | logic_or ;
     fn assignment(&mut self) -> Result<Expr, LoxError> {
         let expr = self.or()?;
         if self.match_(&[EQUAL]) {
@@ -249,7 +250,9 @@ impl Parser {
             if let Expr::Variable(expr) = expr {
                 let name = expr.name;
                 return Ok(Expr::assign(name, value));
-            } else {
+            } else if let Expr::Get(get) = expr {
+                return Ok(Expr::set(get.object, get.name, value));
+            }  else {
                 self.error(equals, "Invalid assignment target."); // TODO thorw?
             }
         }

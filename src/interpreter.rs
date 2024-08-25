@@ -24,6 +24,7 @@ use crate::token::token_type::TokenType;
 use crate::token::Token;
 use crate::{expr, function, stmt};
 use crate::class::LoxClass;
+use crate::expr::set::Set;
 use crate::stmt::class::Class;
 
 pub(crate) struct Interpreter {
@@ -324,6 +325,20 @@ impl expr::Visitor for Interpreter {
             return object.get(expr.name).map(|v| Some(v));
         }
         Err(LoxError::new_parse_error(expr.name, "Only instances have properties.".into()))
+    }
+
+    fn visit_set_expr(&mut self, expr: Set) -> Result<Option<Object>, LoxError> {
+        let object = self.evaluate(&expr.object)?;
+
+        let Some(Object::Instance(mut object)) = object else {
+            return Err(LoxError::new_parse_error(expr.name, "Only instances have fields.".into()))
+        };
+
+        let value = self.evaluate(&expr.value)?;
+        if let Some(value) = value.clone() {
+            object.set(&expr.name, value)?;
+        };
+        Ok(value)
     }
 }
 

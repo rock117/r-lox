@@ -27,6 +27,7 @@ use crate::{expr, stmt};
 use std::collections::HashMap;
 use std::iter::Map;
 use crate::expr::get::Get;
+use crate::expr::set::Set;
 
 pub(crate) struct Resolver {
     pub interpreter: Interpreter,
@@ -237,6 +238,12 @@ impl expr::Visitor for Resolver {
     }
 
     fn visit_get_expr(&mut self, expr: Get) -> Result<Option<Object>, LoxError> {
+        self.resolve_expr(&expr.object);
+        Ok(Some(Object::Void))
+    }
+
+    fn visit_set_expr(&mut self, expr: Set) -> Result<Option<Object>, LoxError> {
+        self.resolve_expr(&expr.value);
         self.resolve_expr(&expr.object);
         Ok(Some(Object::Void))
     }

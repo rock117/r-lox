@@ -22,6 +22,11 @@ impl LoxInstance {
         }
         Err(LoxError::new_parse_error(name.clone(), format!("Undefined property '{}'.", name.lexeme)))
     }
+
+    pub fn set(&mut self, name: &Token, value: Object ) -> Result<Object, LoxError> {
+        self.fields.insert(name.lexeme.clone(), value);
+        Ok(Object::Void)
+    }
 }
 
 impl Display for LoxInstance {
