@@ -1,5 +1,7 @@
 use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Formatter};
+use crate::class::LoxClass;
+use crate::instance::LoxInstance;
 
 use crate::object::Object::{Boolean, Number, Str};
 
@@ -10,6 +12,8 @@ pub(crate) enum Object {
     Boolean(bool),
     Void,
     Function(Box<crate::function::LoxCallable>),
+    Class(LoxClass),
+    Instance(LoxInstance),
 }
 
 impl Object {
@@ -39,8 +43,9 @@ fn to_string(object: &Object) -> String {
         Number(v) => format!("{}", v),
         Boolean(v) => format!("{}", v),
         Object::Void => "".into(),
-
         Object::Function(f) => f.to_string(),
+        Object::Class(class) => class.to_string(),
+        Object::Instance(instance) => instance.to_string()
     }
 }
 impl Debug for Object {

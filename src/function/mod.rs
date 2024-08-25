@@ -1,6 +1,7 @@
 pub mod lox_function;
 pub mod native_function;
 
+use crate::class::LoxClass;
 use crate::error::{LoxError, ParseError};
 use crate::interpreter::Interpreter;
 use crate::object::Object;
@@ -9,6 +10,7 @@ use crate::object::Object;
 pub enum LoxCallable {
     LoxFunction(lox_function::LoxFunction),
     NativeFunction(native_function::NativeFunction),
+    LoxClass(LoxClass)
 }
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum FunctionType {
@@ -25,6 +27,7 @@ impl LoxCallable {
         match self {
             LoxCallable::LoxFunction(f) => f.call(interpreter, arguments),
             LoxCallable::NativeFunction(f) => f.call(interpreter, arguments),
+            LoxCallable::LoxClass(class) => class.call(interpreter, arguments)
         }
     }
 
@@ -32,6 +35,7 @@ impl LoxCallable {
         match self {
             LoxCallable::LoxFunction(f) => f.arity(),
             LoxCallable::NativeFunction(f) => f.arity(),
+            LoxCallable::LoxClass(class) => class.arity(),
         }
     }
 
@@ -39,6 +43,7 @@ impl LoxCallable {
         match self {
             LoxCallable::LoxFunction(f) => f.to_string(),
             LoxCallable::NativeFunction(f) => f.to_string(),
+            LoxCallable::LoxClass(class) => class.to_string()
         }
     }
 }

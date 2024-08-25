@@ -11,7 +11,7 @@ use crate::expr::call::Call;
 use crate::expr::grouping::Grouping;
 use crate::expr::literal::Literal;
 use crate::expr::unary::Unary;
-use crate::expr::{assign, logical, variable, Expr};
+use crate::expr::{assign, logical, variable, Expr, get};
 use crate::function::lox_function::LoxFunction;
 use crate::function::native_function;
 use crate::function::LoxCallable::NativeFunction;
@@ -23,6 +23,8 @@ use crate::stmt::{block, expression, r#if, r#return, r#while, Stmt};
 use crate::token::token_type::TokenType;
 use crate::token::Token;
 use crate::{expr, function, stmt};
+use crate::class::LoxClass;
+use crate::stmt::class::Class;
 
 pub(crate) struct Interpreter {
     globals: Rc<RefCell<Environment>>,
@@ -82,6 +84,8 @@ impl Interpreter {
             Object::Boolean(v) => v.to_string(),
             Object::Void => "".into(),
             Object::Function(f) => f.to_string(),
+            Object::Class(class) => class.to_string(),
+            Object::Instance(instance) => instance.to_string(),
         }
     }
 
@@ -313,6 +317,14 @@ impl expr::Visitor for Interpreter {
         }
         function.call(self, arguments)
     }
+
+    fn visit_get_expr(&mut self, expr:  get::Get) -> Result<Option<Object>, LoxError> {
+        let object = self.evaluate(&expr.object)?;
+        if let Some(Object::Instance(object)) = object {
+            return object.get(expr.name).map(|v| Some(v));
+        }
+        Err(LoxError::new_parse_error(expr.name, "Only instances have properties.".into()))
+    }
 }
 
 impl stmt::Visitor for Interpreter {
@@ -388,6 +400,13 @@ impl stmt::Visitor for Interpreter {
             None
         };
         Err(LoxError::ReturnError(Return { value }))
+    }
+
+    fn visit_class_stmt(&mut self, stmt: Class) -> Result<(), LoxError> {
+        self.environment.borrow_mut().define(stmt.name.lexeme.clone(), None);
+        let klass = LoxClass::new(stmt.name.lexeme.clone());
+        self.environment.borrow_mut().assign(&stmt.name, Some(Object::Class(klass)))?;
+        Ok(())
     }
 }
 

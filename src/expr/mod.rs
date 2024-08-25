@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display};
 
 use crate::error::LoxError;
-use crate::expr::Expr::{Assign, Binary, Call, Grouping, Literal, Logical, Unary, Variable};
+use crate::expr::Expr::{Assign, Binary, Call, Get, Grouping, Literal, Logical, Unary, Variable};
 use crate::object::Object;
 use crate::token::Token;
 
@@ -14,6 +14,7 @@ pub mod literal;
 pub mod logical;
 pub mod unary;
 pub(crate) mod variable;
+pub(crate) mod get;
 
 #[derive(Debug, Clone)]
 pub enum Expr {
@@ -25,6 +26,7 @@ pub enum Expr {
     Unary(Box<unary::Unary>),
     Variable(variable::Variable),
     Call(Box<call::Call>),
+    Get(get::Get),
 }
 
 impl Expr {
@@ -68,6 +70,9 @@ impl Expr {
             arguments,
         }))
     }
+    pub fn get(object: Expr, name: Token) -> Self {
+       Get(get::Get { object, name})
+    }
 
     pub fn accept<V: Visitor>(&self, visitor: &mut V) -> Result<Option<Object>, LoxError> {
         match self {
@@ -79,6 +84,7 @@ impl Expr {
             Variable(v) => visitor.visit_variable_expr(v.clone()),
             Logical(v) => visitor.visit_logical_expr(*v.clone()),
             Call(v) => visitor.visit_call_expr(*v.clone()),
+            Get(_) => todo!()
         }
     }
 }
@@ -118,4 +124,6 @@ pub(crate) trait Visitor {
 
     /// execute function
     fn visit_call_expr(&mut self, expr: call::Call) -> Result<Option<Object>, LoxError>;
+
+    fn visit_get_expr(&mut self, expr: get::Get) -> Result<Option<Object>, LoxError>;
 }

@@ -21,6 +21,8 @@ mod resolver;
 pub(crate) mod scanner;
 pub(crate) mod stmt;
 pub(crate) mod token;
+mod class;
+mod instance;
 
 fn main() -> anyhow::Result<()> {
     let args = std::env::args();

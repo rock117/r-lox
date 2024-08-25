@@ -1,5 +1,5 @@
 pub(crate) mod block;
-mod class;
+pub(crate) mod class;
 pub(crate) mod expression;
 pub mod function;
 pub mod r#if;
@@ -10,7 +10,6 @@ pub(crate) mod r#while;
 
 use crate::error::{LoxError, ParseError};
 use crate::expr::Expr;
-use crate::interpreter::Interpreter;
 use crate::object::Object;
 use crate::stmt::function::Function;
 use crate::token::Token;
@@ -128,4 +127,6 @@ pub(crate) trait Visitor {
     fn visit_function_stmt(&mut self, stmt: function::Function) -> Result<(), LoxError>;
 
     fn visit_return_stmt(&mut self, stmt: r#return::Return) -> Result<(), LoxError>;
+
+    fn visit_class_stmt(&mut self, stmt: class::Class) -> Result<(), LoxError>;
 }

@@ -21,11 +21,12 @@ use crate::stmt::r#if::If;
 use crate::stmt::r#return::Return;
 use crate::stmt::r#while::While;
 use crate::stmt::var::Var;
-use crate::stmt::Stmt;
+use crate::stmt::{class, Stmt};
 use crate::token::Token;
 use crate::{expr, stmt};
 use std::collections::HashMap;
 use std::iter::Map;
+use crate::expr::get::Get;
 
 pub(crate) struct Resolver {
     pub interpreter: Interpreter,
@@ -170,6 +171,12 @@ impl stmt::Visitor for Resolver {
         }
         Ok(())
     }
+
+    fn visit_class_stmt(&mut self, stmt: class::Class) -> Result<(), LoxError> {
+        self.declare(&stmt.name);
+        self.define(&stmt.name);
+        Ok(())
+    }
 }
 
 impl expr::Visitor for Resolver {
@@ -226,6 +233,11 @@ impl expr::Visitor for Resolver {
         for argument in &expr.arguments {
             self.resolve_expr(argument);
         }
+        Ok(Some(Object::Void))
+    }
+
+    fn visit_get_expr(&mut self, expr: Get) -> Result<Option<Object>, LoxError> {
+        self.resolve_expr(&expr.object);
         Ok(Some(Object::Void))
     }
 }

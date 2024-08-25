@@ -329,12 +329,17 @@ impl Parser {
         return self.call();
     }
 
-    /// call → primary ( "(" arguments? ")" )* ;
+    /// call → primary ( "(" arguments? ")" | "." IDENTIFIER )* ;
+    ///
+    /// function or object method
     fn call(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.primary()?;
         loop {
             if self.match_(&[LEFT_PAREN]) {
                 expr = self.finish_call(expr)?;
+            } else if (self.match_(&[DOT])) {
+                let name = self.consume(IDENTIFIER, "Expect property name after '.'.")?;
+                expr =  Expr::get(expr, name);
             } else {
                 break;
             }
