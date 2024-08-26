@@ -2,9 +2,11 @@ use crate::error::LoxError;
 use crate::expr::assign::Assign;
 use crate::expr::binary::Binary;
 use crate::expr::call::Call;
+use crate::expr::get::Get;
 use crate::expr::grouping::Grouping;
 use crate::expr::literal::Literal;
 use crate::expr::logical::Logical;
+use crate::expr::set::Set;
 use crate::expr::unary::Unary;
 use crate::expr::variable::Variable;
 use crate::expr::Expr;
@@ -23,11 +25,9 @@ use crate::stmt::r#while::While;
 use crate::stmt::var::Var;
 use crate::stmt::{class, Stmt};
 use crate::token::Token;
-use crate::{expr, stmt};
+use crate::{expr, function, stmt};
 use std::collections::HashMap;
 use std::iter::Map;
-use crate::expr::get::Get;
-use crate::expr::set::Set;
 
 pub(crate) struct Resolver {
     pub interpreter: Interpreter,
@@ -91,8 +91,7 @@ impl Resolver {
         for i in (0..self.scopes.len()).rev() {
             if let Some(scope) = self.scopes.get(i) {
                 if scope.contains_key(&name.lexeme) {
-                    self.interpreter
-                        .resolve(expr, self.scopes.len() - 1 - i);
+                    self.interpreter.resolve(expr, self.scopes.len() - 1 - i);
                     return;
                 }
             }
@@ -176,6 +175,10 @@ impl stmt::Visitor for Resolver {
     fn visit_class_stmt(&mut self, stmt: class::Class) -> Result<(), LoxError> {
         self.declare(&stmt.name);
         self.define(&stmt.name);
+        for method in stmt.methods {
+            let declaration = FunctionType::METHOD;
+            self.resolve_function(&method, declaration);
+        }
         Ok(())
     }
 }

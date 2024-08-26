@@ -3,6 +3,6 @@ use crate::token::Token;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Get {
-    pub object: Expr ,
-    pub name: Token
+    pub object: Expr,
+    pub name: Token,
 }

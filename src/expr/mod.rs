@@ -1,7 +1,9 @@
 use std::fmt::{Debug, Display};
 
 use crate::error::LoxError;
-use crate::expr::Expr::{Assign, Binary, Call, Get, Grouping, Literal, Logical, Set, Unary, Variable};
+use crate::expr::Expr::{
+    Assign, Binary, Call, Get, Grouping, Literal, Logical, Set, Unary, Variable,
+};
 use crate::object::Object;
 use crate::token::Token;
 
@@ -9,13 +11,13 @@ pub mod assign;
 pub mod ast_printer;
 pub mod binary;
 pub mod call;
+pub(crate) mod get;
 pub mod grouping;
 pub mod literal;
 pub mod logical;
+pub(crate) mod set;
 pub mod unary;
 pub(crate) mod variable;
-pub(crate) mod get;
-pub(crate) mod set;
 
 #[derive(Debug, Clone)]
 pub enum Expr {
@@ -36,11 +38,15 @@ impl Expr {
         match self {
             Variable(v) => v.distance,
             Assign(v) => v.distance,
-            _ => None
+            _ => None,
         }
     }
     pub fn assign(name: Token, expr: Expr) -> Self {
-        Assign(Box::new(assign::Assign { name, value: expr, distance: None }))
+        Assign(Box::new(assign::Assign {
+            name,
+            value: expr,
+            distance: None,
+        }))
     }
     pub fn binary(left: Expr, operator: Token, right: Expr) -> Self {
         Binary(Box::new(binary::Binary::new(left, operator, right)))
@@ -55,7 +61,10 @@ impl Expr {
         Unary(Box::new(unary::Unary::new(operator, right)))
     }
     pub fn variable(name: Token) -> Self {
-        Variable(variable::Variable { name, distance: None })
+        Variable(variable::Variable {
+            name,
+            distance: None,
+        })
     }
     pub fn logical(left: Expr, operator: Token, right: Expr) -> Self {
         Logical(Box::new(logical::Logical {
@@ -73,11 +82,15 @@ impl Expr {
         }))
     }
     pub fn get(object: Expr, name: Token) -> Self {
-       Get(Box::new(get::Get { object, name}))
+        Get(Box::new(get::Get { object, name }))
     }
 
     pub fn set(object: Expr, name: Token, value: Expr) -> Self {
-        Set(Box::new(set::Set { object, name, value}))
+        Set(Box::new(set::Set {
+            object,
+            name,
+            value,
+        }))
     }
 
     pub fn accept<V: Visitor>(&self, visitor: &mut V) -> Result<Option<Object>, LoxError> {

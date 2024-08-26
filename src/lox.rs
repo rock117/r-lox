@@ -57,7 +57,7 @@ impl Lox {
             let mut resolver = Resolver::new(interpreter);
 
             for stmt in &stmts {
-              //  println!("{:?}", stmt);
+                //  println!("{:?}", stmt);
             }
 
             resolver.resolve(&stmts);
@@ -66,7 +66,7 @@ impl Lox {
             if HAD_ERROR.load(Ordering::Relaxed) {
                 return;
             }
-             resolver.interpreter.interpret(&stmts);
+            resolver.interpreter.interpret(&stmts);
         }
     }
 

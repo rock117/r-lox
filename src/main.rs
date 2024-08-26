@@ -9,10 +9,12 @@ use crate::object::Object;
 use crate::token::token_type::TokenType;
 use crate::token::Token;
 
+mod class;
 mod environment;
 mod error;
 mod expr;
 mod function;
+mod instance;
 mod interpreter;
 mod lox;
 mod object;
@@ -21,8 +23,6 @@ mod resolver;
 pub(crate) mod scanner;
 pub(crate) mod stmt;
 pub(crate) mod token;
-mod class;
-mod instance;
 
 fn main() -> anyhow::Result<()> {
     let args = std::env::args();

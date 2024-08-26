@@ -73,7 +73,8 @@ impl Environment {
     }
 
     pub fn assign_at(&mut self, distance: usize, name: &Token, value: Option<Object>) {
-        self.ancestor(distance).map(|env| env.borrow_mut().values.insert(name.lexeme.clone(), value));
+        self.ancestor(distance)
+            .map(|env| env.borrow_mut().values.insert(name.lexeme.clone(), value));
     }
 
     fn ancestor(&self, distance: usize) -> Option<Rc<RefCell<Environment>>> {

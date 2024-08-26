@@ -1,7 +1,7 @@
 use crate::error::{LoxError, ParseError};
+use crate::expr::set::Set;
 use crate::expr::Expr;
 use crate::expr::Expr::Logical;
-use crate::expr::set::Set;
 use crate::lox::Lox;
 use crate::object::Object;
 use crate::stmt::Stmt;
@@ -252,7 +252,7 @@ impl Parser {
                 return Ok(Expr::assign(name, value));
             } else if let Expr::Get(get) = expr {
                 return Ok(Expr::set(get.object, get.name, value));
-            }  else {
+            } else {
                 self.error(equals, "Invalid assignment target."); // TODO thorw?
             }
         }
@@ -342,7 +342,7 @@ impl Parser {
                 expr = self.finish_call(expr)?;
             } else if (self.match_(&[DOT])) {
                 let name = self.consume(IDENTIFIER, "Expect property name after '.'.")?;
-                expr =  Expr::get(expr, name);
+                expr = Expr::get(expr, name);
             } else {
                 break;
             }

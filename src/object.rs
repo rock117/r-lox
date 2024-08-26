@@ -1,7 +1,7 @@
-use std::cmp::Ordering;
-use std::fmt::{Debug, Display, Formatter};
 use crate::class::LoxClass;
 use crate::instance::LoxInstance;
+use std::cmp::Ordering;
+use std::fmt::{Debug, Display, Formatter};
 
 use crate::object::Object::{Boolean, Number, Str};
 
@@ -45,7 +45,7 @@ fn to_string(object: &Object) -> String {
         Object::Void => "".into(),
         Object::Function(f) => f.to_string(),
         Object::Class(class) => class.to_string(),
-        Object::Instance(instance) => instance.to_string()
+        Object::Instance(instance) => instance.to_string(),
     }
 }
 impl Debug for Object {

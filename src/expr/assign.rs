@@ -7,9 +7,7 @@ use crate::token::Token;
 pub(crate) struct Assign {
     pub name: Token,
     pub value: Expr,
-    pub distance: Option<usize>
+    pub distance: Option<usize>,
 }
 
-impl Assign {
-
-}
+impl Assign {}
