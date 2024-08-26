@@ -1,3 +1,4 @@
+use crate::class::ClassType;
 use crate::error::LoxError;
 use crate::expr::assign::Assign;
 use crate::expr::binary::Binary;
@@ -7,6 +8,7 @@ use crate::expr::grouping::Grouping;
 use crate::expr::literal::Literal;
 use crate::expr::logical::Logical;
 use crate::expr::set::Set;
+use crate::expr::this::This;
 use crate::expr::unary::Unary;
 use crate::expr::variable::Variable;
 use crate::expr::Expr;
@@ -33,12 +35,14 @@ pub(crate) struct Resolver {
     pub interpreter: Interpreter,
     scopes: Vec<HashMap<String, bool>>,
     current_function: FunctionType,
+    current_class: ClassType,
 }
 
 impl Resolver {
     pub fn new(interpreter: Interpreter) -> Self {
         Self {
             current_function: NONE,
+            current_class: ClassType::NONE,
             interpreter,
             scopes: vec![],
         }
@@ -167,18 +171,34 @@ impl stmt::Visitor for Resolver {
             Lox::error_(&stmt.keyword, "Can't return from top-level code.");
         }
         if let Some(expr) = stmt.value {
+            if self.current_function == FunctionType::INITIALIZER  {
+                Lox::error_(&stmt.keyword,
+                          "Can't return a value from an initializer.");
+            }
             self.resolve_expr(&expr);
         }
         Ok(())
     }
 
     fn visit_class_stmt(&mut self, stmt: class::Class) -> Result<(), LoxError> {
+        let enclosing_class = self.current_class;
+        self.current_class = ClassType::CLASS;
+
         self.declare(&stmt.name);
         self.define(&stmt.name);
+        self.begin_scope();
+        self.scopes
+            .last_mut()
+            .map(|map| map.insert("this".into(), true));
         for method in stmt.methods {
-            let declaration = FunctionType::METHOD;
+            let mut declaration = FunctionType::METHOD;
+            if method.name.lexeme == "init"  {
+                declaration = FunctionType::INITIALIZER;
+            }
             self.resolve_function(&method, declaration);
         }
+        self.end_scope();
+        self.current_class = enclosing_class;
         Ok(())
     }
 }
@@ -248,6 +268,15 @@ impl expr::Visitor for Resolver {
     fn visit_set_expr(&mut self, expr: Set) -> Result<Option<Object>, LoxError> {
         self.resolve_expr(&expr.value);
         self.resolve_expr(&expr.object);
+        Ok(Some(Object::Void))
+    }
+
+    fn visit_this_expr(&mut self, mut expr: This) -> Result<Option<Object>, LoxError> {
+        if ClassType::NONE == self.current_class {
+            Lox::error_(&expr.keyword, "Can't use 'this' outside of a class.");
+            return Ok(Some(Object::Void));
+        }
+        self.resolve_local(&mut Expr::this(expr.keyword.clone()), &expr.keyword);
         Ok(Some(Object::Void))
     }
 }

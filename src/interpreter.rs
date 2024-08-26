@@ -12,6 +12,7 @@ use crate::expr::call::Call;
 use crate::expr::grouping::Grouping;
 use crate::expr::literal::Literal;
 use crate::expr::set::Set;
+use crate::expr::this::This;
 use crate::expr::unary::Unary;
 use crate::expr::{assign, get, logical, variable, Expr};
 use crate::function::lox_function::LoxFunction;
@@ -353,6 +354,10 @@ impl expr::Visitor for Interpreter {
         };
         Ok(value)
     }
+
+    fn visit_this_expr(&mut self, expr: This) -> Result<Option<Object>, LoxError> {
+        self.lookup_variable(expr.keyword.clone(), &Expr::this(expr.keyword))
+    }
 }
 
 impl stmt::Visitor for Interpreter {
@@ -413,6 +418,7 @@ impl stmt::Visitor for Interpreter {
         let function = LoxFunction {
             declaration: stmt,
             closure: environment,
+            is_initializer: false,
         };
         let function = Box::new(function::LoxCallable::LoxFunction(function));
         self.environment
@@ -440,6 +446,7 @@ impl stmt::Visitor for Interpreter {
             let function = LoxFunction {
                 declaration: method.clone(),
                 closure: self.environment.clone(),
+                is_initializer: method.name.lexeme == "init",
             };
             methods.insert(method.name.lexeme.clone(), function);
         }

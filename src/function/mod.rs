@@ -17,6 +17,7 @@ pub enum FunctionType {
     NONE,
     FUNCTION,
     METHOD,
+    INITIALIZER
 }
 
 impl LoxCallable {

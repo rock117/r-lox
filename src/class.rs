@@ -12,6 +12,11 @@ pub(crate) struct LoxClass {
     pub name: String,
     methods: HashMap<String, LoxFunction>,
 }
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub(crate) enum ClassType {
+    NONE,
+    CLASS,
+}
 
 impl LoxClass {
     pub fn new(name: String, methods: HashMap<String, LoxFunction>) -> Self {
@@ -27,11 +32,22 @@ impl LoxClass {
         interpreter: &mut Interpreter,
         arguments: Vec<Option<Object>>,
     ) -> Result<Option<Object>, LoxError> {
-        Ok(Some(Object::Instance(LoxInstance::new(self.clone()))))
+        let instance = LoxInstance::new(self.clone());
+        let initializer = self.find_method("init");
+        if let Some(initializer) = initializer {
+            initializer
+                .bind(instance.clone())
+                .call(interpreter, arguments)?;
+        }
+        Ok(Some(Object::Instance(instance)))
     }
 
     pub fn arity(&self) -> usize {
-        0
+        let initializer = self.find_method("init");
+        match initializer {
+            None => 0,
+            Some(initializer) => initializer.arity()
+        }
     }
 }
 

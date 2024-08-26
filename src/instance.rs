@@ -1,6 +1,7 @@
 use crate::class::LoxClass;
 use crate::error::LoxError;
 use crate::function::LoxCallable;
+use crate::function::LoxCallable::LoxFunction;
 use crate::object::Object;
 use crate::token::Token;
 use std::collections::HashMap;
@@ -26,7 +27,9 @@ impl LoxInstance {
         }
         let method = self.klass.find_method(&name.lexeme);
         if let Some(method) = method {
-            return Ok(Object::Function(Box::new(LoxCallable::LoxFunction(method))));
+            return Ok(Object::Function(Box::new(LoxFunction(
+                method.bind(self.clone()),
+            ))));
         }
         Err(LoxError::new_parse_error(
             name.clone(),

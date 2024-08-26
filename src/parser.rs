@@ -392,6 +392,9 @@ impl Parser {
         if self.match_(&[NUMBER, STRING]) {
             return Ok(Expr::literal(self.previous().literal.clone()));
         }
+        if self.match_(&[THIS]) {
+            return Ok(Expr::this(self.previous().clone()));
+        }
         if self.match_(&[IDENTIFIER]) {
             return Ok(Expr::variable(self.previous().clone()));
         }
