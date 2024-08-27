@@ -1,7 +1,7 @@
 use crate::error::{LoxError, ParseError};
 use crate::expr::set::Set;
-use crate::expr::Expr;
 use crate::expr::Expr::Logical;
+use crate::expr::{variable, Expr};
 use crate::lox::Lox;
 use crate::object::Object;
 use crate::stmt::Stmt;
@@ -55,9 +55,19 @@ impl Parser {
         }
     }
 
-    /// classDecl → "class" IDENTIFIER "{" function* "}" ;
+    /// classDecl  → "class" IDENTIFIER ( "<" IDENTIFIER )? "{" function* "}" ;
     fn class_declaration(&mut self) -> Result<Stmt, LoxError> {
         let name = self.consume(IDENTIFIER, "Expect class name.")?;
+        let superclass = if self.match_(&[LESS]) {
+            self.consume(IDENTIFIER, "Expect superclass name.")?;
+            Some(variable::Variable {
+                name: self.previous().clone(),
+                distance: None,
+            })
+        } else {
+            None
+        };
+
         self.consume(LEFT_BRACE, "Expect '{' before class body.")?;
         let mut methods = vec![];
         while !self.check(RIGHT_BRACE) && !self.is_at_end() {
@@ -67,7 +77,7 @@ impl Parser {
             }
         }
         self.consume(RIGHT_BRACE, "Expect '}' after class body.")?;
-        Ok(Stmt::class(name, methods))
+        Ok(Stmt::class(name, superclass, methods))
     }
     /// statement → exprStmt
     ///  | forStmt

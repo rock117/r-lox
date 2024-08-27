@@ -9,6 +9,7 @@ pub(crate) mod var;
 pub(crate) mod r#while;
 
 use crate::error::{LoxError, ParseError};
+use crate::expr::variable::Variable;
 use crate::expr::Expr;
 use crate::object::Object;
 use crate::stmt::function::Function;
@@ -25,7 +26,7 @@ pub(crate) enum Stmt {
     Block(block::Block),
     If(Box<r#if::If>),
     While(Box<r#while::While>),
-    Function(Box<function::Function>),
+    Function(Box<Function>),
     Return(r#return::Return),
     Class(class::Class),
 }
@@ -99,8 +100,12 @@ impl Stmt {
         })
     }
 
-    pub fn class(name: Token, methods: Vec<Function>) -> Self {
-        Stmt::Class(class::Class { name, methods })
+    pub fn class(name: Token, superclass: Option<Variable>, methods: Vec<Function>) -> Self {
+        Stmt::Class(class::Class {
+            name,
+            superclass,
+            methods,
+        })
     }
 }
 

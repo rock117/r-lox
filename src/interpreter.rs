@@ -437,6 +437,19 @@ impl stmt::Visitor for Interpreter {
     }
 
     fn visit_class_stmt(&mut self, stmt: Class) -> Result<(), LoxError> {
+        let sclass = if let Some(superclass) = stmt.superclass {
+            let object = self.evaluate(&Expr::Variable(superclass.clone()))?;
+            let Some(Object::Class(class)) = object else {
+                return Err(LoxError::new_parse_error(
+                    superclass.name.clone(),
+                    "Superclass must be a class.".into(),
+                ));
+            };
+            Some(class)
+        } else {
+            None
+        };
+
         self.environment
             .borrow_mut()
             .define(stmt.name.lexeme.clone(), None);
@@ -451,7 +464,7 @@ impl stmt::Visitor for Interpreter {
             methods.insert(method.name.lexeme.clone(), function);
         }
 
-        let klass = LoxClass::new(stmt.name.lexeme.clone(), methods);
+        let klass = LoxClass::new(stmt.name.lexeme.clone(), sclass, methods);
         self.environment
             .borrow_mut()
             .assign(&stmt.name, Some(Object::Class(klass)))?;

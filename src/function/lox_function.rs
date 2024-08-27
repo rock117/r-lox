@@ -11,7 +11,7 @@ use std::rc::Rc;
 pub struct LoxFunction {
     pub(crate) declaration: stmt::function::Function,
     pub(crate) closure: Rc<RefCell<Environment>>,
-    pub(crate) is_initializer: bool
+    pub(crate) is_initializer: bool,
 }
 
 impl LoxFunction {
@@ -46,15 +46,15 @@ impl LoxFunction {
                     }
                 }
                 Ok(None)
-            },
+            }
             Err(LoxError::ReturnError(returnValue)) => {
                 if self.is_initializer {
                     if let Some(fun) = self.closure.borrow().get_at(0, "this".into()) {
-                        return Ok(fun)
+                        return Ok(fun);
                     }
                 }
                 Ok(returnValue.value)
-            },
+            }
             Err(e) => Err(e),
         }
     }

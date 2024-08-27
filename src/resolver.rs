@@ -171,9 +171,8 @@ impl stmt::Visitor for Resolver {
             Lox::error_(&stmt.keyword, "Can't return from top-level code.");
         }
         if let Some(expr) = stmt.value {
-            if self.current_function == FunctionType::INITIALIZER  {
-                Lox::error_(&stmt.keyword,
-                          "Can't return a value from an initializer.");
+            if self.current_function == FunctionType::INITIALIZER {
+                Lox::error_(&stmt.keyword, "Can't return a value from an initializer.");
             }
             self.resolve_expr(&expr);
         }
@@ -186,13 +185,19 @@ impl stmt::Visitor for Resolver {
 
         self.declare(&stmt.name);
         self.define(&stmt.name);
+        if let Some(superclass) = stmt.superclass {
+            if stmt.name.lexeme == superclass.name.lexeme {
+                Lox::error_(&superclass.name, "A class can't inherit from itself.");
+            }
+            self.resolve_expr(&Expr::Variable(superclass));
+        }
         self.begin_scope();
         self.scopes
             .last_mut()
             .map(|map| map.insert("this".into(), true));
         for method in stmt.methods {
             let mut declaration = FunctionType::METHOD;
-            if method.name.lexeme == "init"  {
+            if method.name.lexeme == "init" {
                 declaration = FunctionType::INITIALIZER;
             }
             self.resolve_function(&method, declaration);

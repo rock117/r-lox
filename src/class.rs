@@ -1,5 +1,6 @@
 use crate::environment::Environment;
 use crate::error::LoxError;
+use crate::expr::variable::Variable;
 use crate::function::lox_function::LoxFunction;
 use crate::instance::LoxInstance;
 use crate::interpreter::Interpreter;
@@ -10,6 +11,7 @@ use std::fmt::{Display, Formatter};
 #[derive(Clone, Debug)]
 pub(crate) struct LoxClass {
     pub name: String,
+    superclass: Option<Box<LoxClass>>,
     methods: HashMap<String, LoxFunction>,
 }
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -19,8 +21,16 @@ pub(crate) enum ClassType {
 }
 
 impl LoxClass {
-    pub fn new(name: String, methods: HashMap<String, LoxFunction>) -> Self {
-        LoxClass { name, methods }
+    pub fn new(
+        name: String,
+        superclass: Option<LoxClass>,
+        methods: HashMap<String, LoxFunction>,
+    ) -> Self {
+        LoxClass {
+            name,
+            superclass: superclass.map(|c| Box::new(c)),
+            methods,
+        }
     }
 
     pub(crate) fn find_method(&self, name: &str) -> Option<LoxFunction> {
@@ -46,7 +56,7 @@ impl LoxClass {
         let initializer = self.find_method("init");
         match initializer {
             None => 0,
-            Some(initializer) => initializer.arity()
+            Some(initializer) => initializer.arity(),
         }
     }
 }
