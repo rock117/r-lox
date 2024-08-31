@@ -385,10 +385,9 @@ impl Parser {
 
     /// To access a variable, we define a new kind of primary expressio
     ///
-    /// primary → "true" | "false" | "nil"
-    /// | NUMBER | STRING
-    /// | "(" expression ")"
-    /// | IDENTIFIER ;
+    /// primary        → "true" | "false" | "nil" | "this"
+    //                | NUMBER | STRING | IDENTIFIER | "(" expression ")"
+    //                | "super" "." IDENTIFIER ;
     fn primary(&mut self) -> Result<Expr, LoxError> {
         if self.match_(&[FALSE]) {
             return Ok(Expr::literal(Some(Object::Boolean(false))));
@@ -405,6 +404,13 @@ impl Parser {
         if self.match_(&[THIS]) {
             return Ok(Expr::this(self.previous().clone()));
         }
+        if self.match_(&[SUPER]) {
+            let keyword = self.previous().clone();
+            self.consume(DOT, "Expect '.' after 'super'.")?;
+            let method = self.consume(IDENTIFIER, "Expect superclass method name.")?;
+            return Ok(Expr::super_(keyword, method));
+        }
+
         if self.match_(&[IDENTIFIER]) {
             return Ok(Expr::variable(self.previous().clone()));
         }

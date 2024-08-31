@@ -2,7 +2,7 @@ use std::fmt::{Debug, Display};
 
 use crate::error::LoxError;
 use crate::expr::Expr::{
-    Assign, Binary, Call, Get, Grouping, Literal, Logical, Set, This, Unary, Variable,
+    Assign, Binary, Call, Get, Grouping, Literal, Logical, Set, Super, This, Unary, Variable,
 };
 use crate::object::Object;
 use crate::token::Token;
@@ -16,6 +16,7 @@ pub mod grouping;
 pub mod literal;
 pub mod logical;
 pub(crate) mod set;
+pub(crate) mod super_;
 pub(crate) mod this;
 pub mod unary;
 pub(crate) mod variable;
@@ -33,6 +34,7 @@ pub enum Expr {
     Get(Box<get::Get>),
     Set(Box<set::Set>),
     This(this::This),
+    Super(super_::Super),
 }
 
 impl Expr {
@@ -99,6 +101,10 @@ impl Expr {
         This(this::This { keyword })
     }
 
+    pub fn super_(keyword: Token, method: Token) -> Self {
+        Super(super_::Super { keyword, method })
+    }
+
     pub fn accept<V: Visitor>(&self, visitor: &mut V) -> Result<Option<Object>, LoxError> {
         match self {
             Binary(v) => visitor.visit_binary_expr((**v).clone()),
@@ -112,6 +118,7 @@ impl Expr {
             Get(v) => visitor.visit_get_expr(*v.clone()),
             Set(v) => visitor.visit_set_expr(*v.clone()),
             This(v) => visitor.visit_this_expr(v.clone()),
+            Super(v) => visitor.visit_super_expr(v.clone()),
         }
     }
 }
@@ -157,4 +164,6 @@ pub(crate) trait Visitor {
     fn visit_set_expr(&mut self, expr: set::Set) -> Result<Option<Object>, LoxError>;
 
     fn visit_this_expr(&mut self, expr: this::This) -> Result<Option<Object>, LoxError>;
+
+    fn visit_super_expr(&mut self, expr: super_::Super) -> Result<Option<Object>, LoxError>;
 }

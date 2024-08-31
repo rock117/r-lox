@@ -16,8 +16,9 @@ use crate::expr::this::This;
 use crate::expr::unary::Unary;
 use crate::expr::{assign, get, logical, variable, Expr};
 use crate::function::lox_function::LoxFunction;
-use crate::function::native_function;
 use crate::function::LoxCallable::NativeFunction;
+use crate::function::{native_function, LoxCallable};
+use crate::instance::LoxInstance;
 use crate::lox::Lox;
 use crate::object::Object;
 use crate::stmt::class::Class;
@@ -358,6 +359,38 @@ impl expr::Visitor for Interpreter {
     fn visit_this_expr(&mut self, expr: This) -> Result<Option<Object>, LoxError> {
         self.lookup_variable(expr.keyword.clone(), &Expr::this(expr.keyword))
     }
+
+    fn visit_super_expr(&mut self, expr: expr::super_::Super) -> Result<Option<Object>, LoxError> {
+        let distance = self.locals.get(""); // expr
+        let Some(distance) = distance else {
+            return Err(LoxError::new_parse_error(
+                expr.method.clone(),
+                "distance not exist".into(),
+            ));
+        };
+        let distance = *distance;
+        let superclass = self.environment.borrow().get_at(distance, "super"); // (LoxClass)
+        let object = self.environment.borrow().get_at(distance - 1, "this"); // LoxInstance
+
+        let (Some(Some(Object::Class(superclass))), Some(Some(Object::Instance(object)))) =
+            (superclass, object)
+        else {
+            return Err(LoxError::new_parse_error(
+                expr.method.clone(),
+                format!("Undefined property '{}'", expr.method.lexeme),
+            ));
+        };
+        let method = superclass.find_method(&expr.method.lexeme);
+        match method {
+            Some(method) => Ok(Some(Object::Function(Box::new(LoxCallable::LoxFunction(
+                method.bind(object),
+            ))))),
+            None => Err(LoxError::new_parse_error(
+                expr.method.clone(),
+                format!("Undefined property '{}'", expr.method.lexeme),
+            )),
+        }
+    }
 }
 
 impl stmt::Visitor for Interpreter {
@@ -437,7 +470,7 @@ impl stmt::Visitor for Interpreter {
     }
 
     fn visit_class_stmt(&mut self, stmt: Class) -> Result<(), LoxError> {
-        let sclass = if let Some(superclass) = stmt.superclass {
+        let superclass = if let Some(ref superclass) = stmt.superclass {
             let object = self.evaluate(&Expr::Variable(superclass.clone()))?;
             let Some(Object::Class(class)) = object else {
                 return Err(LoxError::new_parse_error(
@@ -454,6 +487,15 @@ impl stmt::Visitor for Interpreter {
             .borrow_mut()
             .define(stmt.name.lexeme.clone(), None);
 
+        if stmt.superclass.is_some() {
+            self.environment = Rc::new(RefCell::new(Environment::new_from_enclosing(
+                self.environment.clone(),
+            )));
+            self.environment
+                .borrow_mut()
+                .define("super".into(), superclass.clone().map(|v| Object::Class(v)));
+        }
+
         let mut methods = HashMap::new();
         for method in &stmt.methods {
             let function = LoxFunction {
@@ -464,7 +506,14 @@ impl stmt::Visitor for Interpreter {
             methods.insert(method.name.lexeme.clone(), function);
         }
 
-        let klass = LoxClass::new(stmt.name.lexeme.clone(), sclass, methods);
+        let klass = LoxClass::new(stmt.name.lexeme.clone(), superclass.clone(), methods);
+
+        if superclass.is_some() {
+            if let Some(enclosing) = self.environment.clone().borrow().enclosing.clone() {
+                self.environment = enclosing;
+            }
+        }
+
         self.environment
             .borrow_mut()
             .assign(&stmt.name, Some(Object::Class(klass)))?;

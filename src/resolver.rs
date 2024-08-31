@@ -8,6 +8,7 @@ use crate::expr::grouping::Grouping;
 use crate::expr::literal::Literal;
 use crate::expr::logical::Logical;
 use crate::expr::set::Set;
+use crate::expr::super_::Super;
 use crate::expr::this::This;
 use crate::expr::unary::Unary;
 use crate::expr::variable::Variable;
@@ -185,12 +186,18 @@ impl stmt::Visitor for Resolver {
 
         self.declare(&stmt.name);
         self.define(&stmt.name);
-        if let Some(superclass) = stmt.superclass {
+        if let Some(superclass) = &stmt.superclass {
             if stmt.name.lexeme == superclass.name.lexeme {
                 Lox::error_(&superclass.name, "A class can't inherit from itself.");
             }
-            self.resolve_expr(&Expr::Variable(superclass));
+            self.resolve_expr(&Expr::Variable(superclass.clone()));
+
+            self.begin_scope();
+            self.scopes
+                .last_mut()
+                .map(|map| map.insert("super".into(), true));
         }
+
         self.begin_scope();
         self.scopes
             .last_mut()
@@ -203,6 +210,10 @@ impl stmt::Visitor for Resolver {
             self.resolve_function(&method, declaration);
         }
         self.end_scope();
+
+        if stmt.superclass.is_some() {
+            self.end_scope();
+        }
         self.current_class = enclosing_class;
         Ok(())
     }
@@ -282,6 +293,22 @@ impl expr::Visitor for Resolver {
             return Ok(Some(Object::Void));
         }
         self.resolve_local(&mut Expr::this(expr.keyword.clone()), &expr.keyword);
+        Ok(Some(Object::Void))
+    }
+
+    fn visit_super_expr(&mut self, expr: Super) -> Result<Option<Object>, LoxError> {
+        if self.current_class == ClassType::NONE {
+            Lox::error_(&expr.keyword, "Can't use 'super' outside of a class.");
+        } else if self.current_class != ClassType::SUBCLASS {
+            Lox::error_(
+                &expr.keyword,
+                "Can't use 'super' in a class with no superclass.",
+            );
+        }
+        self.resolve_local(
+            &mut Expr::super_(expr.keyword.clone(), expr.method),
+            &expr.keyword,
+        );
         Ok(Some(Object::Void))
     }
 }

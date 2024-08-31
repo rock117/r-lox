@@ -9,7 +9,7 @@ use crate::token::Token;
 #[derive(Clone, Debug)]
 pub(crate) struct Environment {
     /// parent scope's env
-    enclosing: Option<Rc<RefCell<Environment>>>,
+    pub(crate) enclosing: Option<Rc<RefCell<Environment>>>,
     /// current scope's env
     values: HashMap<String, Option<Object>>,
 }

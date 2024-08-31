@@ -18,6 +18,7 @@ pub(crate) struct LoxClass {
 pub(crate) enum ClassType {
     NONE,
     CLASS,
+    SUBCLASS,
 }
 
 impl LoxClass {
@@ -34,6 +35,9 @@ impl LoxClass {
     }
 
     pub(crate) fn find_method(&self, name: &str) -> Option<LoxFunction> {
+        if let Some(superclass) = &self.superclass {
+            return superclass.find_method(name);
+        }
         self.methods.get(name).map(|v| v.clone())
     }
 
